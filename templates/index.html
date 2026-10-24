@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オセロ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/othello.js') }}" defer></script>
+</head>
+<body>
+    <div class="info-area">
+        <h2>オセロ - <span id="info">黒の番</span></h2>
+        <label for="mode">モード選択:</label>
+        <select id="mode">
+            <option value="pvp">二人で遊ぶ</option>
+            <option value="pvc">一人で遊ぶ（CPU）</option>
+        </select>
+        <button id="reset-button" type="button">リセット</button>
+    </div>
+    <div id="board"></div>
+</body>
+</html>
