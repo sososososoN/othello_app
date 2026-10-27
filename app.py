@@ -1,40 +1,34 @@
 import os
 import secrets
-from dataclasses import dataclass, field
-from threading import RLock
-from uuid import uuid4
 
 from flask import Flask, jsonify, render_template, request, session
 
 from game import EMPTY, WHITE, Game
 from cpu import choose_cpu_move
+from storage import GameRecord, GameStore
 
 app = Flask(__name__)
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+app.secret_key = (
+    os.environ.get("FLASK_SECRET_KEY")
+    or secrets.token_hex(32)
+)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
-@dataclass
-class GameRecord:
-    game: Game = field(default_factory=Game)
-    mode: str = "pvp"
-    lock: RLock = field(default_factory=RLock)
-    
-games: dict[str, GameRecord] = {}
-registry_lock = RLock()
+
+store = GameStore()
 
 def get_game() -> GameRecord:
     game_id = session.get("game_id")
-    with registry_lock:
-        if isinstance(game_id, str) and game_id in games:
-            return games[game_id]
-        game_id = uuid4().hex
-        record = GameRecord()
-        games[game_id] = record
-        session["game_id"] = game_id
-        return record
+    if isinstance(game_id, str):
+        record = store.get(game_id)
+        if record is not None:
+            return record
+    game_id, record = store.create()
+    session["game_id"] = game_id
+    return record
 
 def serialize_game(record: GameRecord) -> dict:
     return {
@@ -62,6 +56,12 @@ def process_cpu_turn(record: GameRecord) -> None:
 def index():
     get_game()
     return render_template('index.html')
+
+@app.route("/state", methods={"GET"})
+def get_state():
+    record = get_game()
+    with record.lock:
+        return jsonify(serialize_game(record))
 
 @app.route('/click', methods = ['POST'])
 def handle_click():
@@ -109,12 +109,6 @@ def handle_reset():
     record = get_game()
     with record.lock:
         record.game.reset()
-        return jsonify(serialize_game(record))
-    
-@app.route("/state", methods={"GET"})
-def get_state():
-    record = get_game()
-    with record.lock:
         return jsonify(serialize_game(record))
 
 if __name__ == '__main__':
