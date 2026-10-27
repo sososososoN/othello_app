@@ -143,18 +143,18 @@ async function resetGame() {
 // ページ初期表示時に現在の盤面を取得する
 async function initializeGame() {
     await runRequest(async () => {
-        const state = await postJson("/click", {
-            y: -1,
-            x: -1,
-            mode: modeElement.value,
-        });
-
+        const response = await fetch("/state");
+        if (!response.ok){
+            throw new Error(`HTTP${response.status}`);
+        }
+        const state = await response.json();
+        modeElement.value = state.mode;
         const stoneCount = state.board
             .flat()
             .filter((cell) => cell !== 0)
             .length;
 
-        gameStarted = stoneCount > 4;
+        gameStarted = stoneCount > 4 || state.turn === 0;
         modeElement.disabled = gameStarted;
 
         drawBoard(state);
