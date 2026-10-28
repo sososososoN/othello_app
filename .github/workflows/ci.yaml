@@ -1,0 +1,76 @@
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "refactor/**"
+    paths:
+      - "**/*.py"
+      - "requirements.txt"
+      - "pytest.ini"
+      - "package.json"
+      - "package-lock.json"
+      - "static/js/**"
+      - "tests_js/**"
+      - ".github/workflows/ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.py"
+      - "requirements.txt"
+      - "pytest.ini"
+      - "package.json"
+      - "package-lock.json"
+      - "static/js/**"
+      - "tests_js/**"
+      - ".github/workflows/ci.yml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python / pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run pytest
+        run: python -m pytest -v
+
+  javascript-tests:
+    name: JavaScript / Vitest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest
+        run: npm test
