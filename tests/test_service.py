@@ -1,4 +1,3 @@
-
 import pytest
 
 from game import BLACK, WHITE, Game

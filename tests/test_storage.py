@@ -1,4 +1,3 @@
-
 from game import BLACK, WHITE
 from storage import GameStore
 

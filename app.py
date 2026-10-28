@@ -2,7 +2,7 @@ import os
 import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,10 +18,7 @@ app = FastAPI(title="Othello API", version="1.0.0")
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key = (
-    os.environ.get("FLASK_SECRET_KEY")
-    or secrets.token_hex(32)
-    ),
+    secret_key=(os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)),
     same_site="lax",
     https_only=False,
 )
@@ -32,9 +29,10 @@ app.mount(
     name="static",
 )
 
-templates = Jinja2Templates(directory=BASE_DIR /"templates")
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 store = GameStore()
+
 
 def get_game(request: Request) -> GameRecord:
     game_id = request.session.get("game_id")
@@ -46,6 +44,7 @@ def get_game(request: Request) -> GameRecord:
     request.session["game_id"] = game_id
     return record
 
+
 @app.exception_handler(GameError)
 def handle_game_error(request: Request, error: GameError):
     return JSONResponse(
@@ -53,18 +52,18 @@ def handle_game_error(request: Request, error: GameError):
         content={"error": str(error)},
     )
 
-@app.get('/', include_in_schema=False)
+
+@app.get("/", include_in_schema=False)
 def index(request: Request):
     get_game(request)
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html"
-    )
+    return templates.TemplateResponse(request=request, name="index.html")
+
 
 @app.get("/state", response_model=GameStateResponse)
 def get_state(request: Request):
     service = GameService(get_game(request))
     return service.state()
+
 
 @app.post("/moves", response_model=GameStateResponse)
 def create_move(request: Request, data: MoveRequest):
@@ -73,6 +72,7 @@ def create_move(request: Request, data: MoveRequest):
     with record.lock:
         service.play(data.y, data.x)
         return service.state()
+
 
 @app.patch("/mode", response_model=GameStateResponse)
 def update_mode(request: Request, data: ModeRequest):
@@ -83,10 +83,10 @@ def update_mode(request: Request, data: ModeRequest):
         return service.state()
 
 
-@app.post('/reset', response_model=GameStateResponse)
+@app.post("/reset", response_model=GameStateResponse)
 def handle_reset(request: Request):
     record = get_game(request)
     service = GameService(record)
     with record.lock:
         service.reset()
-        return service.state()   
+        return service.state()

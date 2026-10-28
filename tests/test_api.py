@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 
 import service as game_service
@@ -174,9 +173,7 @@ def test_response_schema(client: TestClient) -> None:
 
     assert response.status_code == 200
 
-    state = GameStateResponse.model_validate(
-        response.json()
-    )
+    state = GameStateResponse.model_validate(response.json())
 
     assert len(state.board) == 8
     assert all(len(row) == 8 for row in state.board)
@@ -196,13 +193,11 @@ def test_openapi_response_schema(client: TestClient) -> None:
         ("patch", "/mode"),
         ("post", "/reset"),
     ):
-        schema = paths[path][method]["responses"]["200"][
-            "content"
-        ]["application/json"]["schema"]
+        schema = paths[path][method]["responses"]["200"]["content"]["application/json"][
+            "schema"
+        ]
 
-        assert schema["$ref"].endswith(
-            "/GameStateResponse"
-        )
+        assert schema["$ref"].endswith("/GameStateResponse")
 
 
 def test_change_mode(client: TestClient) -> None:

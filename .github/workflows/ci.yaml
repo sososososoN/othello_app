@@ -13,7 +13,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "static/js/**"
-      - "tests_js/**"
+      - "tests/**"
       - ".github/workflows/ci.yml"
 
   pull_request:
@@ -26,8 +26,10 @@ on:
       - "package.json"
       - "package-lock.json"
       - "static/js/**"
-      - "tests_js/**"
+      - "tests/**"
       - ".github/workflows/ci.yml"
+      - "pyproject.toml"
+      - "eslint.config.mjs"
 
   workflow_dispatch:
 
@@ -52,7 +54,12 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install ruff
+
+      - name: Ruff format check
+        run: python -m ruff format --check .
 
       - name: Run pytest
         run: python -m pytest -v
@@ -72,5 +79,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: ESLint
+        run: npm run lint
+      
       - name: Run Vitest
         run: npm test

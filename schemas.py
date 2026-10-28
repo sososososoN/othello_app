@@ -25,13 +25,16 @@ ValidMove = Annotated[
     Field(min_length=2, max_length=2),
 ]
 
+
 class MoveRequest(BaseModel):
     y: Coordinate
     x: Coordinate
-    
+
+
 class ModeRequest(BaseModel):
     mode: GameMode
-    
+
+
 class GameStateResponse(BaseModel):
     board: BoardSchema
     turn: Literal[0, 1, 2]
