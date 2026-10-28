@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 import service as game_service
+from schemas import GameStateResponse
 
 def test_index(client: TestClient) -> None:
     response = client.get("/")
@@ -129,3 +130,36 @@ def test_openapi(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "/click" in response.json()["paths"]
+
+def test_response_schema(client: TestClient) -> None:
+    response = client.get("/state")
+    
+    assert response.status_code == 200
+    
+    state = GameStateResponse.model_validate(
+        response.json()    
+    )
+    
+    assert len(state.board) == 8
+    assert all(len(row)  == 8 for row in state.board)
+    assert state.turn == 1
+    
+def test_openapi_response_schema(client: TestClient) -> None:
+    response = client.get("/openapi.json")
+    
+    assert response.status_code == 200
+    
+    paths = response.json()["paths"]
+    
+    for method, path in (
+        ("get", "/state"),
+        ("post", "/click"),
+        ("post", "/reset")
+    ):
+        schema = paths[path][method]["responses"]["200"][
+            "content"
+        ]["application/json"]["schema"]
+        
+        assert schema["$ref"].endswith(
+            "/GameStateResponse"
+        )

@@ -1,17 +1,16 @@
 import os
 import secrets
 from pathlib import Path
-from typing import Literal
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, StrictInt
 from starlette.middleware.sessions import SessionMiddleware
 
 from storage import GameRecord, GameStore
 from service import GameError, GameService
+from schemas import MoveRequest, GameStateResponse
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -36,11 +35,6 @@ app.mount(
 templates = Jinja2Templates(directory=BASE_DIR /"templates")
 
 store = GameStore()
-
-class MoveRequest(BaseModel):
-    y: StrictInt
-    x: StrictInt
-    mode: Literal["pvp", "pvc"]
 
 def get_game(request: Request) -> GameRecord:
     game_id = request.session.get("game_id")
@@ -67,12 +61,12 @@ def index(request: Request):
         name="index.html"
     )
 
-@app.get("/state")
+@app.get("/state", response_model=GameStateResponse)
 def get_state(request: Request):
     service = GameService(get_game(request))
     return service.state()
 
-@app.post('/click')
+@app.post('/click', response_model=GameStateResponse)
 def handle_click(request: Request, data: MoveRequest):
     y = data.y
     x = data.x
@@ -93,7 +87,7 @@ def handle_click(request: Request, data: MoveRequest):
             service.play(y, x)
         return service.state()
 
-@app.post('/reset')
+@app.post('/reset', response_model=GameStateResponse)
 def handle_reset(request: Request):
     record = get_game(request)
     service = GameService(record)
