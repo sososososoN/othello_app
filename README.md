@@ -1,162 +1,167 @@
-# オセロ（Othello）
+# Othello Web App
 
-Python（Flask）とHTML・CSS・JavaScriptを使用して開発したWebブラウザ上で遊べるオセロアプリです。
+PythonのFlaskで構築したWeb版オセロアプリケーションです。
 
-2人対戦とCPU対戦に対応しています。CPUにはMinimax法とαβ枝刈りを使用し、盤面の評価に基づいて着手を決定します。
+プレイヤー同士の対戦（PvP）とCPU対戦（PvC）に対応しています。CPUにはMinimax法とαβ枝刈りを使用しています。
 
-## 1. 主な機能
+## 主な機能
 
-- **2人対戦（PvP）**：同じブラウザ上で黒と白を交互に操作
-- **CPU対戦（PvC）**：プレイヤーが黒、CPUが白を担当
-- **合法手の表示**：石を置けるマスにヒントを表示
-- **自動反転**：着手に応じて相手の石を自動的に反転
-- **パス判定**：合法手がない場合に手番をスキップ
-- **勝敗判定**：双方に合法手がなくなった場合にゲームを終了し、石数を表示
-- **リセット**：盤面を初期状態に戻す
+- 8×8のオセロ盤面
+- プレイヤー対プレイヤー（PvP）
+- プレイヤー対CPU（PvC）
+- 合法手のハイライト表示
+- 石の反転、パス、終局判定
+- ゲームのリセット
+- ブラウザのセッションごとのゲーム状態管理
+- ページ再読み込み後の対局状態の復元
+- pytestによる自動テスト
 
-## 2. 技術スタック
+## 技術スタック
 
-| 分類 | 技術 | 用途 |
-|---|---|---|
-| フロントエンド | HTML5 | 画面構造 |
-| スタイリング | CSS3 | 盤面や石のデザイン |
-| フロントエンド処理 | JavaScript | DOM操作・イベント処理・API通信 |
-| バックエンド | Python | ゲームロジック・CPUの探索処理 |
-| Webフレームワーク | Flask | ルーティング・API・HTML配信 |
-| テンプレートエンジン | Jinja2 | HTMLテンプレートの処理 |
-| 通信 | HTTP / JSON | クライアント・サーバー間のデータ交換 |
-| テスト | pytest | 単体テスト・APIテスト |
-| パッケージ管理 | pip | Pythonライブラリの管理 |
-| 仮想環境 | venv | Python実行環境の分離 |
-| バージョン管理 | Git / GitHub | ソースコードの管理 |
+| 分野 | 技術 |
+|---|---|
+| Backend | Python 3.13 / Flask |
+| Frontend | HTML / CSS / JavaScript |
+| CPU | Minimax / Alpha-Beta Pruning |
+| Storage | Pythonのインメモリ辞書 |
+| Session | Flask Session |
+| Testing | pytest |
+| Version Control | Git / GitHub |
 
-## 3. ディレクトリ構成
+## ディレクトリ構成
 
 ```text
-othello/
-├── app.py                  # Flaskアプリ・ゲームロジック・CPU
+オセロ_app/
+├── app.py
+├── game.py
+├── cpu.py
+├── storage.py
+├── service.py
+├── requirements.txt
+├── pytest.ini
+├── README.md
+├── .gitignore
 ├── templates/
-│   └── index.html          # HTML
+│   └── index.html
 ├── static/
 │   ├── css/
-│   │   └── style.css       # スタイル
+│   │   └── style.css
 │   └── js/
-│       └── othello.js      # フロントエンド処理
-├── tests/
-│   ├── conftest.py         # テストの共通設定
-│   ├── test_game.py        # ゲームロジックのテスト
-│   └── test_api.py         # APIのテスト
-├── requirements.txt        # Python依存ライブラリ
-├── pytest.ini              # pytest設定
-├── .gitignore              # Git管理対象外の設定
-└── README.md               # 本ファイル
+│       └── othello.js
+└── tests/
+    ├── conftest.py
+    ├── test_game.py
+    ├── test_game_model.py
+    ├── test_cpu.py
+    ├── test_api.py
+    ├── test_session.py
+    ├── test_storage.py
+    └── test_service.py
 ```
 
-## 4. 環境構築
+## アーキテクチャ
 
-### 前提条件
+責務を分離したレイヤード構成を採用しています。
 
-- Python 3.10以上を推奨
-- pip
-- Git（任意）
+| ファイル | 責務 |
+|---|---|
+| `app.py` | HTTPリクエスト、セッション、レスポンス |
+| `service.py` | 対戦モード変更、ゲーム進行、CPUの応手 |
+| `game.py` | 盤面、合法手、石の反転、パス、終局 |
+| `cpu.py` | 盤面評価、Minimax探索、CPUの着手選択 |
+| `storage.py` | ゲームIDとゲーム状態の保存・取得・削除 |
 
-以下はWindowsのPowerShellを使用する場合の手順です。
+ゲームの進行処理をFlaskから分離しているため、ドメインロジックやサービス層はHTTPサーバーを起動せずにテストできます。
 
-### ① リポジトリの取得
+### データフロー
+
+```text
+Browser
+   |
+   | HTTP Request
+   v
+app.py
+   |
+   | GameService
+   v
+service.py
+   |
+   +---- game.py
+   |
+   +---- cpu.py
+   |
+   +---- storage.py（GameRecord）
+   |
+   v
+app.py
+   |
+   | JSON Response
+   v
+Browser
+```
+
+## セットアップ
+
+### 1. リポジトリの取得
 
 ```powershell
-git clone <リポジトリURL>
-cd othello
+git clone <repository-url>
+cd オセロ_app
 ```
 
-既にローカルにプロジェクトがある場合、この操作は不要です。
-
-### ② 仮想環境の作成
+### 2. 仮想環境の作成
 
 ```powershell
-py -m venv .venv
+py -3.13 -m venv .venv
 ```
 
-プロジェクト専用のPython仮想環境を `.venv` ディレクトリに作成します。
+### 3. 仮想環境の有効化
 
-### ③ 依存ライブラリのインストール
+Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
 ```
 
-主な依存ライブラリは以下のとおりです。
-
-- `Flask`：Webアプリケーションフレームワーク
-- `pytest`：Pythonのテストフレームワーク
-
-### ④ アプリケーションの起動
+終了する場合:
 
 ```powershell
-.\.venv\Scripts\python.exe app.py
+deactivate
 ```
 
-起動後、ブラウザで以下のURLにアクセスします。
+### 4. 依存パッケージのインストール
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### 5. アプリケーションの起動
+
+```powershell
+python app.py
+```
+
+ブラウザから次のURLにアクセスします。
 
 http://127.0.0.1:5001/
 
-**注意：** HTMLファイルを直接開いたり、VS CodeのLive Serverから起動したりしないでください。Flaskを経由してアクセスする必要があります。
+Flaskの開発サーバーを使用しているため、本番環境での公開には別途適切なWSGIサーバーなどが必要です。
 
-## 5. 遊び方
+## API仕様
 
-### 2人対戦
+### `GET /`
 
-1. モード選択で「二人で遊ぶ」を選択します。
-2. 黒から順番に石を置きます。
-3. 合法手には小さな丸が表示されます。
-4. 双方に合法手がなくなるとゲーム終了です。
-5. 石の数が多いプレイヤーが勝利します。
+ゲーム画面のHTMLを返します。セッションにゲームが存在しない場合は新規作成します。
 
-### CPU対戦
+### `GET /state`
 
-1. モード選択で「一人で遊ぶ（CPU）」を選択します。
-2. プレイヤーが黒、CPUが白を担当します。
-3. プレイヤーが着手すると、CPUが探索結果に基づいて応手します。
-4. ゲーム終了時に黒と白の石数が表示されます。
+現在のゲーム状態を取得します。
 
-対戦途中で「リセット」を押すと初期状態に戻ります。
+### `POST /click`
 
-## 6. アプリケーションの仕組み
+指定座標に石を置きます。
 
-本アプリは、フロントエンドとバックエンドをHTTP APIで連携させています。
-
-```text
-[ブラウザ]
-  │
-  ├── HTML：画面構造
-  ├── CSS：デザイン
-  └── JavaScript：画面操作
-          │
-          │ HTTPリクエスト
-          ▼
-[Flaskサーバー]
-          │
-          ├── API処理
-          ├── 合法手判定
-          ├── 石の反転
-          └── CPUの着手探索
-          │
-          │ JSONレスポンス
-          ▼
-[JavaScript]
-          │
-          └── DOMを更新して盤面を再描画
-```
-
-### 主なAPI
-
-| HTTPメソッド | エンドポイント | 処理内容 |
-|---|---|---|
-| GET | `/` | ゲーム画面のHTMLを返す |
-| POST | `/click` | 着手処理または現在の盤面取得 |
-| POST | `/reset` | ゲーム状態を初期化 |
-
-#### 着手リクエスト例
+リクエスト例：
 
 ```json
 {
@@ -166,88 +171,138 @@ http://127.0.0.1:5001/
 }
 ```
 
-- `y`：盤面の行番号（0〜7）
-- `x`：盤面の列番号（0〜7）
-- `mode`：`pvp` または `pvc`
+座標は0始まりです。
 
-現在の実装では、`y` と `x` に `-1` を指定すると、着手せずに盤面を取得します。
+`y = -1`、`x = -1` は既存フロントエンドとの互換性のために残している状態取得用の特別な指定です。
 
-### 盤面データ
+### `POST /reset`
 
-盤面は8×8の二次元配列で管理しています。
+現在のセッションのゲーム盤面を初期化します。対戦モードは維持します。
 
-| 値 | 意味 |
+### レスポンス形式
+
+```json
+{
+  "board": [
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "turn": 1,
+  "message": "",
+  "mode": "pvp",
+  "valid_moves": [
+    [2, 3],
+    [3, 2],
+    [4, 5],
+    [5, 4]
+  ]
+}
+```
+
+上記の `board` は形式を説明するために1行のみ示しています。実際には8行8列の整数配列が返ります。
+
+盤面の値：
+
+- `0`：空きマス
+- `1`：黒石
+- `2`：白石
+
+`turn` はゲーム終了時に `0` となります。
+
+入力エラーにはHTTP 400、ゲーム状態との競合にはHTTP 409を使用します。
+
+## CPUのアルゴリズム
+
+CPUは白石を担当します。
+
+Minimax法を使用し、プレイヤーが最善手を選択することを前提に先読み探索を行います。
+
+さらにαβ枝刈りによって、最終的な判断に影響しない探索分岐を省略します。
+
+盤面評価では以下を考慮しています。
+
+- 角などの位置の価値
+- 石数の差
+- 終局時の勝敗
+- 反転する石の周囲の空きマス
+
+探索深さは基本4、盤上の石が48個を超えた場合は5に設定しています（明示的な深さ指定がない場合）。
+
+## テスト
+
+pytestを使用します。
+
+### 全テストを実行
+
+```powershell
+python -m pytest -v
+```
+
+### 個別テストを実行
+
+```powershell
+python -m pytest tests/test_game_model.py -v
+python -m pytest tests/test_cpu.py -v
+python -m pytest tests/test_api.py -v
+python -m pytest tests/test_session.py -v
+python -m pytest tests/test_storage.py -v
+python -m pytest tests/test_service.py -v
+```
+
+各テストの主な対象は次のとおりです。
+
+| テスト | 検証対象 |
 |---|---|
-| `0` | 空きマス |
-| `1` | 黒 |
-| `2` | 白 |
+| `test_game_model.py` | オセロのルールと状態遷移 |
+| `test_cpu.py` | CPU探索と盤面評価 |
+| `test_api.py` | HTTP APIの入出力 |
+| `test_session.py` | セッションの独立性 |
+| `test_storage.py` | ゲームの保存・取得・削除 |
+| `test_service.py` | ゲーム進行とCPU連携 |
 
-また、手番を表す `turn` は、ゲーム終了時に `0` になります。
+## セッションとゲーム状態の管理
 
-## 7. CPUアルゴリズム
+ブラウザのセッションCookieにはゲームIDを保存します。
 
-CPUの着手探索には、Minimax法とαβ枝刈りを使用しています。
+サーバー側では `GameStore` がゲームIDと `GameRecord` の対応関係を保持します。
 
-### Minimax法
+`GameRecord` には以下の情報があります。
 
-自分と相手がそれぞれ最善の手を選択すると仮定し、複数手先まで探索するアルゴリズムです。
+- `Game` インスタンス
+- 対戦モード
+- 排他制御用のロック
 
-- CPU（白）：評価値が最大になる手を選択
-- プレイヤー（黒）：評価値が最小になる手を選択
+同じブラウザセッションでは対局を継続でき、別のブラウザセッションでは独立したゲームを利用できます。
 
-### αβ枝刈り
+## 現在の制約
 
-Minimax法の探索中に、最終的な選択結果へ影響しないことが確定した分岐を省略する最適化手法です。
+このプロジェクトは学習・ローカル開発向けの構成です。
 
-これにより、探索ノード数を削減できます。
+- ゲーム状態はメモリ内に保存され、サーバー再起動で消失します。
+- 複数のPythonプロセス間ではゲーム状態を共有できません。
+- ログイン認証は実装していません。
+- 古いゲームを自動削除する仕組みは未実装です。
+- CSRF対策や本番向けセッション設定は追加検討が必要です。
+- CPU探索は同期的に実行するため、探索が長い場合はレスポンスが遅くなります。
 
-### 盤面評価
+## 今後の改善候補
 
-盤面の評価には、各マスに設定した重みを使用します。
+- ゲーム状態の永続化（Redis / PostgreSQL）
+- ゲームデータの有効期限と自動削除
+- CPU探索の高速化
+- 難易度の選択
+- WebSocketを利用したリアルタイム対戦
+- CIによる自動テスト
+- デプロイ環境の整備
 
-特に角は相手に裏返されないため高い評価値を与え、その周辺には負の評価値を設定しています。
+## 開発方針
 
-また、終盤には石数の差による評価へ切り替えています。
+機能追加だけでなく、リファクタリングを通じて次の設計原則を学ぶことを目的としています。
 
-現在の探索深さは、局面に応じて変更されます。
+- Separation of Concerns（関心の分離）
+- Encapsulation（カプセル化）
+- Dependency Injection（依存性注入）
+- Service Layer（サービス層）
+- Repository Pattern（リポジトリパターン）
+- Automated Testing（自動テスト）
 
-## 8. テスト
-
-pytestを用いてゲームロジックとFlask APIをテストします。
-
-### すべてのテストを実行
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -v
-```
-
-### ゲームロジックのテスト
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_game.py -v
-```
-
-### APIのテスト
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_api.py -v
-```
-
-### テスト項目
-
-**ゲームロジック**
-
-- 初期盤面の生成
-- 初期合法手の判定
-- 石の反転処理
-- 複数石の反転判定
-- 不正な着手の拒否
-- 着手後の盤面・手番更新
-
-**Flask API**
-
-- トップページの配信
-- JavaScriptファイルの配信
-- CSSファイルの配信
-- 初期状態の取得
-- 着手リク
+変更後はpytestとブラウザで動作確認を行い、正常動作を確認してからGitにコミットします。
