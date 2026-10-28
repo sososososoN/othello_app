@@ -1,35 +1,44 @@
 
-from flask.testing import FlaskClient
+from fastapi.testclient import TestClient
 
 import app as othello
 from game import BLACK, WHITE, Game
 
 
 def test_clients_have_independent_games(
-    client: FlaskClient,
+    client: TestClient,
 ) -> None:
-    with othello.app.test_client() as second_client:
-        response = client.post("/click", json={
-            "y": 2, "x": 3, "mode": "pvp"
-        })
-        assert response.status_code == 200
+    second_client = TestClient(othello.app)
 
-        state_a = client.get("/state").get_json()
-        state_b = second_client.get("/state").get_json()
+    response = client.post(
+        "/moves",
+        json={"y": 2, "x": 3},
+    )
 
-        assert state_a["turn"] == WHITE
-        assert state_b["turn"] == BLACK
-        assert state_b["board"] == Game().board
+    assert response.status_code == 200
+
+    state_a = client.get("/state").json()
+    state_b = second_client.get("/state").json()
+
+    assert state_a["turn"] == WHITE
+    assert state_b["turn"] == BLACK
+    assert state_b["board"] == Game().board
 
 
-def test_refresh_preserves_game(client: FlaskClient) -> None:
-    client.post("/click", json={
-        "y": 2, "x": 3, "mode": "pvp"
-    })
+def test_refresh_preserves_game(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/moves",
+        json={"y": 2, "x": 3},
+    )
 
-    before = client.get("/state").get_json()
+    assert response.status_code == 200
+
+    before = client.get("/state").json()
+
     response = client.get("/")
-    after = client.get("/state").get_json()
+    after = client.get("/state").json()
 
     assert response.status_code == 200
     assert before["board"] == after["board"]
@@ -37,40 +46,49 @@ def test_refresh_preserves_game(client: FlaskClient) -> None:
 
 
 def test_reset_does_not_affect_other_client(
-    client: FlaskClient,
+    client: TestClient,
 ) -> None:
-    with othello.app.test_client() as second_client:
-        for browser in (client, second_client):
-            response = browser.post("/click", json={
-                "y": 2, "x": 3, "mode": "pvp"
-            })
-            assert response.status_code == 200
+    second_client = TestClient(othello.app)
 
-        client.post("/reset", json={})
+    for browser in (client, second_client):
+        response = browser.post(
+            "/moves",
+            json={"y": 2, "x": 3},
+        )
 
-        state_a = client.get("/state").get_json()
-        state_b = second_client.get("/state").get_json()
+        assert response.status_code == 200
 
-        assert state_a["board"] == Game().board
-        assert state_b["board"] != Game().board
+    response = client.post("/reset", json={})
+    assert response.status_code == 200
+
+    state_a = client.get("/state").json()
+    state_b = second_client.get("/state").json()
+
+    assert state_a["board"] == Game().board
+    assert state_b["board"] != Game().board
 
 
 def test_state_does_not_change_board(
-    client: FlaskClient,
+    client: TestClient,
 ) -> None:
-    before = client.get("/state").get_json()
-    after = client.get("/state").get_json()
+    before = client.get("/state").json()
+    after = client.get("/state").json()
 
     assert before["board"] == after["board"]
     assert before["turn"] == after["turn"]
 
 
-def test_reset_preserves_mode(client: FlaskClient) -> None:
-    response = client.post("/click", json={
-        "y": -1, "x": -1, "mode": "pvc"
-    })
+def test_reset_preserves_mode(
+    client: TestClient,
+) -> None:
+    response = client.patch(
+        "/mode",
+        json={"mode": "pvc"},
+    )
+
     assert response.status_code == 200
 
     response = client.post("/reset", json={})
+
     assert response.status_code == 200
-    assert response.get_json()["mode"] == "pvc"
+    assert response.json()["mode"] == "pvc"

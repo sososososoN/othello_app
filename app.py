@@ -1,80 +1,92 @@
 import os
 import secrets
+from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request, session
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from storage import GameRecord, GameStore
 from service import GameError, GameService
+from schemas import MoveRequest, ModeRequest, GameStateResponse
 
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
 
-app.secret_key = (
+app = FastAPI(title="Othello API", version="1.0.0")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key = (
     os.environ.get("FLASK_SECRET_KEY")
     or secrets.token_hex(32)
+    ),
+    same_site="lax",
+    https_only=False,
 )
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
+
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "static"),
+    name="static",
 )
+
+templates = Jinja2Templates(directory=BASE_DIR /"templates")
 
 store = GameStore()
 
-def get_game() -> GameRecord:
-    game_id = session.get("game_id")
+def get_game(request: Request) -> GameRecord:
+    game_id = request.session.get("game_id")
     if isinstance(game_id, str):
         record = store.get(game_id)
         if record is not None:
             return record
     game_id, record = store.create()
-    session["game_id"] = game_id
+    request.session["game_id"] = game_id
     return record
 
-@app.errorhandler(GameError)
-def handle_game_error(error: GameError):
-    return jsonify({"error": str(error)}), error.status_code
+@app.exception_handler(GameError)
+def handle_game_error(request: Request, error: GameError):
+    return JSONResponse(
+        status_code=error.status_code,
+        content={"error": str(error)},
+    )
 
-@app.route('/', methods=["GET"])
-def index():
-    get_game()
-    return render_template('index.html')
+@app.get('/', include_in_schema=False)
+def index(request: Request):
+    get_game(request)
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html"
+    )
 
-@app.route("/state", methods={"GET"})
-def get_state():
-    service = GameService(get_game())
-    return jsonify(service.state())
+@app.get("/state", response_model=GameStateResponse)
+def get_state(request: Request):
+    service = GameService(get_game(request))
+    return service.state()
 
-@app.route('/click', methods = ['POST'])
-def handle_click():
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return jsonify({"error":"Invalid JSON body"}), 400
-    y = data.get("y")
-    x = data.get("x")
-    mode = data.get("mode")
-    if type(y) is not int or type(x) is not int:
-        return jsonify({"error": "Coordinates must be integers"}), 400
-    if mode not in ("pvp", "pvc"):
-        return jsonify({"error": "Invalid game mode"}), 400
-    is_state_request = y == -1 and x == -1
-    if not is_state_request and not (
-        0 <= y < 8 and 0 <= x < 8
-    ):
-        return jsonify({"error": "Coodinates out of range"}), 400
-    record = get_game()
+@app.post("/moves", response_model=GameStateResponse)
+def create_move(request: Request, data: MoveRequest):
+    record = get_game(request)
     service = GameService(record)
     with record.lock:
-        service.change_mode(mode)
-        if not is_state_request:
-            service.play(y, x)
-        return jsonify(service.state())
+        service.play(data.y, data.x)
+        return service.state()
 
-@app.route('/reset', methods = ['POST'])
-def handle_reset():
-    record = get_game()
+@app.patch("/mode", response_model=GameStateResponse)
+def update_mode(request: Request, data: ModeRequest):
+    record = get_game(request)
     service = GameService(record)
     with record.lock:
-        record.game.reset()
-        return jsonify(service.state())
+        service.change_mode(data.mode)
+        return service.state()
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)    
+
+@app.post('/reset', response_model=GameStateResponse)
+def handle_reset(request: Request):
+    record = get_game(request)
+    service = GameService(record)
+    with record.lock:
+        service.reset()
+        return service.state()   

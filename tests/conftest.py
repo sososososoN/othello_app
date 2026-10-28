@@ -1,16 +1,15 @@
 from collections.abc import Iterator
+
 import pytest
 import app as othello
-from flask.testing import FlaskClient
+
+from fastapi.testclient import TestClient
 from storage import GameStore
 
-@pytest.fixture
-def client(monkeypatch) -> Iterator[FlaskClient]:
-    # Flaskをテストモードにする
-    othello.app.config.update(TESTING=True)
 
-    # テスト専用の空のストレージに差し替える
+@pytest.fixture
+def client(monkeypatch) -> Iterator[TestClient]:
     monkeypatch.setattr(othello, "store", GameStore())
 
-    # 前回の修正どおり、withで囲まず提供する
-    yield othello.app.test_client()
+    with TestClient(othello.app) as test_client:
+        yield test_client
