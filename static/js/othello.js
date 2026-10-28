@@ -11,18 +11,21 @@ const resetButton = document.getElementById("reset-button");
 let gameStarted = false;
 let isLoading = false;
 let currentTurn = 1;
+let currentMode = "pvp";
 
-// Flask APIにPOSTリクエストを送る共通関数
-async function postJson(url, body) {
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
+async function requestJson(url, method = "GET", body = null) {
+    const options = { method };
+
+    if (body !== null) {
+        options.headers = {
             "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-    });
+        };
 
-    // HTTPエラーを検出する
+        options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, options);
+
     if (!response.ok) {
         throw new Error(
             `APIエラー: ${response.status} ${response.statusText}`
@@ -32,18 +35,21 @@ async function postJson(url, body) {
     return response.json();
 }
 
+
 // API通信中に操作が重複しないようにする
 async function runRequest(task) {
-    if (isLoading) return;
+    if (isLoading) return false;
 
     isLoading = true;
     resetButton.disabled = true;
 
     try {
         await task();
+        return true
     } catch (error) {
         console.error(error);
         infoElement.textContent = "通信エラーが発生しました";
+        return false;
     } finally {
         isLoading = false;
         resetButton.disabled = false;
@@ -54,7 +60,9 @@ async function runRequest(task) {
 function drawBoard(state) {
     boardElement.replaceChildren();
 
+    modeElement.value = state.mode;
     currentTurn = state.turn;
+    currentMode = state.mode;
 
     if (state.turn === 0) {
         infoElement.textContent = state.message || "ゲーム終了";
@@ -67,7 +75,7 @@ function drawBoard(state) {
 
     // CPUの番では合法手のヒントを非表示にする
     const isCpuTurn =
-        modeElement.value === "pvc" && state.turn === 2;
+        state.mode === "pvc" && state.turn === 2;
 
     const showHints = state.turn !== 0 && !isCpuTurn;
 
@@ -112,27 +120,29 @@ function drawBoard(state) {
     });
 }
 
-// プレイヤーの着手をFlaskに送信する
+
 async function sendMove(y, x) {
     if (isLoading || currentTurn === 0) return;
 
     await runRequest(async () => {
-        const state = await postJson("/click", {
-            y,
-            x,
-            mode: modeElement.value,
-        });
+        const state = await requestJson(
+            "/moves",
+            "POST",
+            { y, x }
+        );
 
         gameStarted = true;
         modeElement.disabled = true;
+
         drawBoard(state);
     });
 }
 
+
 // 新しいゲームを開始する
 async function resetGame() {
     await runRequest(async () => {
-        const state = await postJson("/reset", {});
+        const state = await requestJson("/reset", "POST", {});
 
         gameStarted = false;
         modeElement.disabled = false;
@@ -143,11 +153,7 @@ async function resetGame() {
 // ページ初期表示時に現在の盤面を取得する
 async function initializeGame() {
     await runRequest(async () => {
-        const response = await fetch("/state");
-        if (!response.ok){
-            throw new Error(`HTTP${response.status}`);
-        }
-        const state = await response.json();
+        const state = await requestJson("/state");
         modeElement.value = state.mode;
         const stoneCount = state.board
             .flat()
@@ -160,6 +166,33 @@ async function initializeGame() {
         drawBoard(state);
     });
 }
+
+
+async function changeMode() {
+    if (isLoading || gameStarted) {
+        modeElement.value = currentMode;
+        return;
+    }
+
+    const selectMode = modeElement.value;
+
+    const success = await runRequest(async () => {
+        const state = await requestJson(
+            "/mode",
+            "PATCH",
+            { mode: selectedMode }
+        );
+
+        drawBoard(state);
+    });
+    if (!success) {
+        modeElement.value = currentMode;
+    }
+}
+
+modeElement.addEventListener("change", () => {
+    void changeMode();
+});
 
 // イベントを登録する
 resetButton.addEventListener("click", () => {

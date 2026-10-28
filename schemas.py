@@ -26,8 +26,10 @@ ValidMove = Annotated[
 ]
 
 class MoveRequest(BaseModel):
-    y: StrictInt
-    x: StrictInt
+    y: Coordinate
+    x: Coordinate
+    
+class ModeRequest(BaseModel):
     mode: GameMode
     
 class GameStateResponse(BaseModel):

@@ -1,3 +1,4 @@
+
 from fastapi.testclient import TestClient
 
 import app as othello
@@ -9,9 +10,10 @@ def test_clients_have_independent_games(
 ) -> None:
     second_client = TestClient(othello.app)
 
-    response = client.post("/click", json={
-        "y": 2, "x": 3, "mode": "pvp"
-    })
+    response = client.post(
+        "/moves",
+        json={"y": 2, "x": 3},
+    )
 
     assert response.status_code == 200
 
@@ -23,10 +25,15 @@ def test_clients_have_independent_games(
     assert state_b["board"] == Game().board
 
 
-def test_refresh_preserves_game(client: TestClient) -> None:
-    client.post("/click", json={
-        "y": 2, "x": 3, "mode": "pvp"
-    })
+def test_refresh_preserves_game(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/moves",
+        json={"y": 2, "x": 3},
+    )
+
+    assert response.status_code == 200
 
     before = client.get("/state").json()
 
@@ -44,9 +51,11 @@ def test_reset_does_not_affect_other_client(
     second_client = TestClient(othello.app)
 
     for browser in (client, second_client):
-        response = browser.post("/click", json={
-            "y": 2, "x": 3, "mode": "pvp"
-        })
+        response = browser.post(
+            "/moves",
+            json={"y": 2, "x": 3},
+        )
+
         assert response.status_code == 200
 
     response = client.post("/reset", json={})
@@ -69,10 +78,14 @@ def test_state_does_not_change_board(
     assert before["turn"] == after["turn"]
 
 
-def test_reset_preserves_mode(client: TestClient) -> None:
-    response = client.post("/click", json={
-        "y": -1, "x": -1, "mode": "pvc"
-    })
+def test_reset_preserves_mode(
+    client: TestClient,
+) -> None:
+    response = client.patch(
+        "/mode",
+        json={"mode": "pvc"},
+    )
+
     assert response.status_code == 200
 
     response = client.post("/reset", json={})

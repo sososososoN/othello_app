@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from storage import GameRecord, GameStore
 from service import GameError, GameService
-from schemas import MoveRequest, GameStateResponse
+from schemas import MoveRequest, ModeRequest, GameStateResponse
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -66,26 +66,22 @@ def get_state(request: Request):
     service = GameService(get_game(request))
     return service.state()
 
-@app.post('/click', response_model=GameStateResponse)
-def handle_click(request: Request, data: MoveRequest):
-    y = data.y
-    x = data.x
-    mode = data.mode
-    is_state_request = (y, x) == (-1, -1)
-    if not is_state_request and not (
-        0 <= y < 8 and 0 <= x < 8
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Coordinates out of range",
-        )
+@app.post("/moves", response_model=GameStateResponse)
+def create_move(request: Request, data: MoveRequest):
     record = get_game(request)
     service = GameService(record)
     with record.lock:
-        service.change_mode(mode)
-        if not is_state_request:
-            service.play(y, x)
+        service.play(data.y, data.x)
         return service.state()
+
+@app.patch("/mode", response_model=GameStateResponse)
+def update_mode(request: Request, data: ModeRequest):
+    record = get_game(request)
+    service = GameService(record)
+    with record.lock:
+        service.change_mode(data.mode)
+        return service.state()
+
 
 @app.post('/reset', response_model=GameStateResponse)
 def handle_reset(request: Request):
