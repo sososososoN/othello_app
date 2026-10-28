@@ -174,7 +174,7 @@ async function changeMode() {
         return;
     }
 
-    const selectMode = modeElement.value;
+    const selectedMode = modeElement.value;
 
     const success = await runRequest(async () => {
         const state = await requestJson(
