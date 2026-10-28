@@ -3,9 +3,8 @@ import secrets
 
 from flask import Flask, jsonify, render_template, request, session
 
-from game import EMPTY, WHITE, Game
-from cpu import choose_cpu_move
 from storage import GameRecord, GameStore
+from service import GameError, GameService
 
 app = Flask(__name__)
 
@@ -30,27 +29,9 @@ def get_game() -> GameRecord:
     session["game_id"] = game_id
     return record
 
-def serialize_game(record: GameRecord) -> dict:
-    return {
-        "board": record.game.board,
-        "turn": record.game.turn,
-        "message": record.game.message,
-        "mode": record.mode,
-        "valid_moves": [
-            [y, x] for y, x in record.game.valid_moves()
-        ],
-    }
-
-def process_cpu_turn(record: GameRecord) -> None:
-    if record.mode != "pvc":
-        return
-    while record.game.turn == WHITE:
-        move = choose_cpu_move(record.game.board)
-        if move is None:
-            raise RuntimeError("CPU has no valid move")
-        y, x = move
-        if not record.game.place(y, x):
-            raise RuntimeError("CPU selected an illegal move")
+@app.errorhandler(GameError)
+def handle_game_error(error: GameError):
+    return jsonify({"error": str(error)}), error.status_code
 
 @app.route('/', methods=["GET"])
 def index():
@@ -59,9 +40,8 @@ def index():
 
 @app.route("/state", methods={"GET"})
 def get_state():
-    record = get_game()
-    with record.lock:
-        return jsonify(serialize_game(record))
+    service = GameService(get_game())
+    return jsonify(service.state())
 
 @app.route('/click', methods = ['POST'])
 def handle_click():
@@ -81,35 +61,20 @@ def handle_click():
     ):
         return jsonify({"error": "Coodinates out of range"}), 400
     record = get_game()
+    service = GameService(record)
     with record.lock:
-        if mode != record.mode:
-            stone_count = sum(
-                cell != EMPTY
-                for row in record.game.board
-                for cell in row
-            )
-            if stone_count > 4 or record.game.turn == EMPTY:
-                return jsonify({
-                    "error": "Reset before changing mode"
-                    }), 409
-            record.mode = mode
-        if is_state_request:
-            return jsonify(serialize_game(record))
-        if record.mode == "pvc" and record.game.turn == WHITE:
-            return jsonify({"error": "It is the CPU's turn"}), 409
-        if record.game.turn == EMPTY:
-            return jsonify({"error": "Game has ended"}), 409
-        if not record.game.place(y, x):
-            return jsonify({"error": "Illegal move"}), 400
-        process_cpu_turn(record)
-        return jsonify(serialize_game(record))
+        service.change_mode(mode)
+        if not is_state_request:
+            service.play(y, x)
+        return jsonify(service.state())
 
 @app.route('/reset', methods = ['POST'])
 def handle_reset():
     record = get_game()
+    service = GameService(record)
     with record.lock:
         record.game.reset()
-        return jsonify(serialize_game(record))
+        return jsonify(service.state())
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)    
