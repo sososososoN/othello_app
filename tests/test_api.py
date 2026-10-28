@@ -1,5 +1,6 @@
 from flask.testing import FlaskClient
 import app as othello
+import service as game_service
 
 def test_index(client: FlaskClient) -> None:
     response = client.get("/")
@@ -63,23 +64,28 @@ def test_illegal_move(client: FlaskClient) -> None:
     })
     assert response.status_code == 400
 
+
 def test_cpu_game(client: FlaskClient, monkeypatch) -> None:
-    # CPUが予測可能な合法手を選ぶよう差し替える
-    # Minimax自体のテストはtest_cpu.pyが担当
+    # サービスが使うCPU選択関数を差し替える
     monkeypatch.setattr(
-        othello, "choose_cpu_move",
-        lambda board: (2, 2)
+        game_service,
+        "choose_cpu_move",
+        lambda board: (2, 2),
     )
-    # まず黒が(2,3)に置く
+
     response = client.post("/click", json={
-        "y": 2, "x": 3, "mode": "pvc"
+        "y": 2,
+        "x": 3,
+        "mode": "pvc",
     })
+
     data = response.get_json()
+
     assert response.status_code == 200
-    # CPUが白石を置いたことを確認
     assert data["board"][2][2] == 2
     assert data["turn"] == 1
     assert data["mode"] == "pvc"
+
 
 def test_mode_change_after_move(client: FlaskClient) -> None:
     # 着手後にモードを変更できない
