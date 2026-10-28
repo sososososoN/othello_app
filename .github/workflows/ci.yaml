@@ -10,35 +10,26 @@ on:
       - "**/*.py"
       - "requirements.txt"
       - "pytest.ini"
+      - "pyproject.toml"
       - "package.json"
       - "package-lock.json"
+      - "eslint.config.mjs"
       - "static/js/**"
       - "tests/**"
-      - ".github/workflows/ci.yml"
+      - ".github/workflows/ci.yaml"
 
   pull_request:
     branches:
       - main
-    paths:
-      - "**/*.py"
-      - "requirements.txt"
-      - "pytest.ini"
-      - "package.json"
-      - "package-lock.json"
-      - "static/js/**"
-      - "tests/**"
-      - ".github/workflows/ci.yml"
-      - "pyproject.toml"
-      - "eslint.config.mjs"
 
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   python-tests:
