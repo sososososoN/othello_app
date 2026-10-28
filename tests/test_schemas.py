@@ -1,4 +1,3 @@
-
 import pytest
 
 from pydantic import ValidationError
@@ -15,9 +14,7 @@ def valid_state() -> dict:
         "turn": game.turn,
         "message": game.message,
         "mode": "pvp",
-        "valid_moves": [
-            [y, x] for y, x in game.valid_moves()
-        ],
+        "valid_moves": [[y, x] for y, x in game.valid_moves()],
     }
 
 

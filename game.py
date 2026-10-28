@@ -6,24 +6,28 @@ BLACK = 1
 WHITE = 2
 
 DIRECTIONS = (
-    (-1, -1), (-1, 0), (-1, 1),
-    ( 0, -1),          ( 0, 1),
-    ( 1, -1), ( 1, 0), ( 1, 1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
 )
 
 Board = list[list[int]]
 Position = tuple[int, int]
 
+
 def create_board() -> Board:
-    board = [
-        [EMPTY for _ in range(BOARD_SIZE)]
-        for _ in range(BOARD_SIZE)
-    ]
+    board = [[EMPTY for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
     board[3][3] = WHITE
     board[3][4] = BLACK
     board[4][3] = BLACK
     board[4][4] = WHITE
     return board
+
 
 def get_flippable_stones(
     board: Board,
@@ -43,9 +47,7 @@ def get_flippable_stones(
         candidates: list[Position] = []
         cy, cx = y + dy, x + dx
         while (
-            0 <= cy < BOARD_SIZE
-            and 0 <= cx < BOARD_SIZE
-            and board[cy][cx] == opponent
+            0 <= cy < BOARD_SIZE and 0 <= cx < BOARD_SIZE and board[cy][cx] == opponent
         ):
             candidates.append((cy, cx))
             cy += dy
@@ -59,6 +61,7 @@ def get_flippable_stones(
             flippable.extend(candidates)
     return flippable
 
+
 def get_valid_moves(board: Board, player: int) -> list[Position]:
     return [
         (y, x)
@@ -66,31 +69,30 @@ def get_valid_moves(board: Board, player: int) -> list[Position]:
         for x in range(BOARD_SIZE)
         if get_flippable_stones(board, y, x, player)
     ]
-    
+
+
 @dataclass
 class Game:
     board: Board = field(default_factory=create_board)
     turn: int = BLACK
     message: str = ""
-    
+
     def valid_moves(self) -> list[Position]:
         if self.turn == EMPTY:
             return []
         return get_valid_moves(self.board, self.turn)
-    
+
     def stone_counts(self) -> tuple[int, int]:
         black = sum(row.count(BLACK) for row in self.board)
         white = sum(row.count(WHITE) for row in self.board)
         return black, white
-    
+
     def place(self, y: int, x: int) -> bool:
         if self.turn == EMPTY:
             return False
 
         player = self.turn
-        flippable = get_flippable_stones(
-            self.board, y, x, player
-        )
+        flippable = get_flippable_stones(self.board, y, x, player)
 
         if not flippable:
             return False
@@ -114,10 +116,8 @@ class Game:
             self.message = f"終了！黒:{black} 白:{white}"
 
         return True
-        
+
     def reset(self) -> None:
         self.board = create_board()
         self.turn = BLACK
         self.message = ""
-
-    

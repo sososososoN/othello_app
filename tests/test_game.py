@@ -1,5 +1,6 @@
 from game import BLACK, WHITE, Game
 
+
 def test_place_and_flip() -> None:
     # 新しいゲームを作る
     game = Game()

@@ -24,6 +24,7 @@ WEIGHTS = (
 
 WIN_SCORE = 100_000
 
+
 def apply_move(
     board: Board,
     y: int,
@@ -31,9 +32,7 @@ def apply_move(
     player: int,
 ) -> Board:
     new_board = [row.copy() for row in board]
-    flippable = get_flippable_stones(
-        board, y, x, player
-    )
+    flippable = get_flippable_stones(board, y, x, player)
     if not flippable:
         raise ValueError("Illegal move")
     new_board[y][x] = player
@@ -41,14 +40,12 @@ def apply_move(
         new_board[fy][fx] = player
     return new_board
 
+
 def evaluate_board(board: Board) -> int:
     black = sum(row.count(BLACK) for row in board)
     white = sum(row.count(WHITE) for row in board)
 
-    if (
-        not get_valid_moves(board, BLACK)
-        and not get_valid_moves(board, WHITE)
-    ):
+    if not get_valid_moves(board, BLACK) and not get_valid_moves(board, WHITE):
         difference = white - black
         if difference > 0:
             return WIN_SCORE + difference
@@ -69,6 +66,7 @@ def evaluate_board(board: Board) -> int:
 
     return score
 
+
 def count_adjacent_empty_cells(
     board: Board,
     y: int,
@@ -77,13 +75,10 @@ def count_adjacent_empty_cells(
     count = 0
     for dy, dx in DIRECTIONS:
         ny, nx = y + dy, x + dx
-        if (
-            0 <= ny < 8
-            and 0 <= nx < 8
-            and board[ny][nx] == EMPTY
-        ):
+        if 0 <= ny < 8 and 0 <= nx < 8 and board[ny][nx] == EMPTY:
             count += 1
     return count
+
 
 def minimax(
     board: Board,
@@ -101,21 +96,14 @@ def minimax(
     moves = get_valid_moves(board, player)
     opponent = 3 - player
     if not moves:
-        opponent_moves = get_valid_moves(
-            board, opponent
-        )
+        opponent_moves = get_valid_moves(board, opponent)
         if not opponent_moves:
             return evaluate_board(board)
-        return minimax(
-            board, depth - 1,
-            alpha, beta, opponent
-        )
+        return minimax(board, depth - 1, alpha, beta, opponent)
     if player == WHITE:
         best = -inf
         for y, x in moves:
-            next_board = apply_move(
-                board, y, x, player
-            )
+            next_board = apply_move(board, y, x, player)
             value = minimax(
                 next_board,
                 depth - 1,
@@ -130,9 +118,7 @@ def minimax(
         return int(best)
     best = inf
     for y, x in moves:
-        next_board = apply_move(
-            board, y, x, player
-        )
+        next_board = apply_move(board, y, x, player)
         value = minimax(
             next_board,
             depth - 1,
@@ -156,11 +142,7 @@ def choose_cpu_move(
     if not moves:
         return None
 
-    stone_count = sum(
-        cell != EMPTY
-        for row in board
-        for cell in row
-    )
+    stone_count = sum(cell != EMPTY for row in board for cell in row)
 
     if depth is None:
         depth = 5 if stone_count > 48 else 4
@@ -172,18 +154,11 @@ def choose_cpu_move(
     best_score = -inf
 
     for y, x in moves:
-        flippable = get_flippable_stones(
-            board, y, x, WHITE
-        )
+        flippable = get_flippable_stones(board, y, x, WHITE)
 
-        penalty = sum(
-            count_adjacent_empty_cells(board, fy, fx)
-            for fy, fx in flippable
-        )
+        penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
 
-        next_board = apply_move(
-            board, y, x, WHITE
-        )
+        next_board = apply_move(board, y, x, WHITE)
 
         score = minimax(
             next_board,

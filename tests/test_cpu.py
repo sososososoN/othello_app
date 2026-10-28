@@ -1,4 +1,3 @@
-
 import pytest
 from math import inf
 
@@ -30,9 +29,7 @@ def test_choose_cpu_move() -> None:
     game = Game()
     assert game.place(2, 3)
 
-    original_board = [
-        row.copy() for row in game.board
-    ]
+    original_board = [row.copy() for row in game.board]
 
     move = choose_cpu_move(game.board, depth=2)
 
@@ -56,8 +53,10 @@ def test_minimax_pass() -> None:
     board[0][1] = WHITE
 
     score = minimax(
-        board, depth=2,
-        alpha=-inf, beta=inf,
+        board,
+        depth=2,
+        alpha=-inf,
+        beta=inf,
         player=WHITE,
     )
 
