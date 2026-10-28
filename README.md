@@ -248,17 +248,32 @@ gh run view <RUN_ID> --log-failed
 
 ## 開発フロー
 
-開発は原則として作業ブランチで行い、変更単位を分けてcommitします。
+このプロジェクトはGitHub Flowを基本として開発しています。
 
-1. 作業ブランチで機能追加・修正を行う
-2. ローカルでLint・Format・テストを実行する
+1. `main` から作業ブランチを作成する
+2. 機能追加・修正・テストを実施する
 3. 必要に応じてREADMEを更新する
-4. 変更内容ごとにcommitする
-5. GitHubにpushする
-6. CIの結果を確認する
-7. Pull Requestを通じてmainへの統合を行う
+4. コミットしてGitHubへpushする
+5. `main` に向けてPull Requestを作成する
+6. GitHub ActionsのCI成功を確認する
+7. Pull Requestをマージする
 
-CIを必須チェックとするブランチ保護は、設定の整合性を確認したうえで導入します。
+### ブランチ保護
+
+`main` ブランチにはRulesetを適用し、直接push・強制push・削除を制限しています。
+
+マージには次のステータスチェックの成功が必要です。
+
+- `Python / pytest`：Ruff・pytest
+- `JavaScript / Vitest`：ESLint・Vitest
+
+### CIの発火条件
+
+- `main` および `refactor/**` へのpush：対象コード・設定ファイルが変更された場合
+- `main` 向けPull Request：ファイルの種類に関係なく実行
+- 手動実行：GitHub ActionsまたはGitHub CLIから実行可能
+
+CIは読み取り専用権限で実行し、コードの自動commit・pushやデプロイは行いません。
 
 ## 現在の制約
 
