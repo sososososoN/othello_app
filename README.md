@@ -1,308 +1,282 @@
-# Othello Web App
+# Othello
 
-PythonのFlaskで構築したWeb版オセロアプリケーションです。
+PythonとJavaScriptで開発したWeb版オセロゲームです。
 
-プレイヤー同士の対戦（PvP）とCPU対戦（PvC）に対応しています。CPUにはMinimax法とαβ枝刈りを使用しています。
+FastAPIをバックエンドに使用し、ゲームロジック・状態管理・API・フロントエンドを分離しています。
 
 ## 主な機能
 
-- 8×8のオセロ盤面
-- プレイヤー対プレイヤー（PvP）
-- プレイヤー対CPU（PvC）
-- 合法手のハイライト表示
-- 石の反転、パス、終局判定
+- 8×8盤面でのオセロ対局
+- PvP（プレイヤー対プレイヤー）
+- PvC（プレイヤー対CPU）
+- Minimax法とαβ枝刈りによるCPU
+- 合法手の表示
+- パス・ゲーム終了判定
 - ゲームのリセット
-- ブラウザのセッションごとのゲーム状態管理
-- ページ再読み込み後の対局状態の復元
-- pytestによる自動テスト
+- セッションごとのゲーム状態管理
 
 ## 技術スタック
 
 | 分野 | 技術 |
 |---|---|
-| Backend | Python 3.13 / Flask |
-| Frontend | HTML / CSS / JavaScript |
-| CPU | Minimax / Alpha-Beta Pruning |
-| Storage | Pythonのインメモリ辞書 |
-| Session | Flask Session |
-| Testing | pytest |
-| Version Control | Git / GitHub |
+| バックエンド | Python 3.13 / FastAPI |
+| APIスキーマ | Pydantic |
+| フロントエンド | HTML / CSS / JavaScript |
+| テンプレート | Jinja2 |
+| セッション | Starlette SessionMiddleware |
+| Pythonテスト | pytest |
+| JavaScriptテスト | Vitest / jsdom |
+| Python静的解析 | Ruff |
+| JavaScript静的解析 | ESLint |
+| CI | GitHub Actions |
 
 ## ディレクトリ構成
 
 ```text
-オセロ_app/
-├── app.py
-├── game.py
-├── cpu.py
-├── storage.py
-├── service.py
-├── requirements.txt
-├── pytest.ini
-├── README.md
-├── .gitignore
-├── templates/
-│   └── index.html
+othello/
+├── .github/
+│   └── workflows/
+│       └── ci.yaml
 ├── static/
 │   ├── css/
 │   │   └── style.css
 │   └── js/
 │       └── othello.js
-└── tests/
-    ├── conftest.py
-    ├── test_game.py
-    ├── test_game_model.py
-    ├── test_cpu.py
-    ├── test_api.py
-    ├── test_session.py
-    ├── test_storage.py
-    └── test_service.py
+├── templates/
+│   └── index.html
+├── tests/
+│   ├── conftest.py
+│   ├── test_api.py
+│   ├── test_cpu.py
+│   ├── test_game.py
+│   ├── test_game_model.py
+│   ├── test_schemas.py
+│   ├── test_service.py
+│   ├── test_session.py
+│   ├── test_storage.py
+│   └── othello.test.js
+├── app.py
+├── cpu.py
+├── game.py
+├── schemas.py
+├── service.py
+├── storage.py
+├── requirements.txt
+├── package.json
+├── package-lock.json
+├── pytest.ini
+├── pyproject.toml
+├── eslint.config.mjs
+└── README.md
 ```
 
-## アーキテクチャ
+### 各モジュールの責務
 
-責務を分離したレイヤード構成を採用しています。
-
-| ファイル | 責務 |
+| ファイル | 役割 |
 |---|---|
-| `app.py` | HTTPリクエスト、セッション、レスポンス |
-| `service.py` | 対戦モード変更、ゲーム進行、CPUの応手 |
-| `game.py` | 盤面、合法手、石の反転、パス、終局 |
-| `cpu.py` | 盤面評価、Minimax探索、CPUの着手選択 |
-| `storage.py` | ゲームIDとゲーム状態の保存・取得・削除 |
-
-ゲームの進行処理をFlaskから分離しているため、ドメインロジックやサービス層はHTTPサーバーを起動せずにテストできます。
-
-### データフロー
-
-```text
-Browser
-   |
-   | HTTP Request
-   v
-app.py
-   |
-   | GameService
-   v
-service.py
-   |
-   +---- game.py
-   |
-   +---- cpu.py
-   |
-   +---- storage.py（GameRecord）
-   |
-   v
-app.py
-   |
-   | JSON Response
-   v
-Browser
-```
+| `app.py` | FastAPIのエンドポイント、セッション、HTTPレスポンス |
+| `schemas.py` | APIのリクエスト・レスポンスの型定義 |
+| `service.py` | ゲーム操作やCPUターンを含むビジネスロジック |
+| `storage.py` | セッションに対応するゲーム状態の管理 |
+| `game.py` | オセロのルール、合法手、石の反転、勝敗判定 |
+| `cpu.py` | CPUの着手選択、Minimax、αβ枝刈り |
+| `othello.js` | API通信、盤面描画、ユーザー操作 |
 
 ## セットアップ
 
-### 1. リポジトリの取得
+### 1. リポジトリを取得
 
-```powershell
+```bash
 git clone <repository-url>
-cd オセロ_app
+cd othello
 ```
 
-### 2. 仮想環境の作成
+### 2. Pythonの仮想環境を作成
+
+Windows PowerShellの場合：
 
 ```powershell
 py -3.13 -m venv .venv
-```
-
-### 3. 仮想環境の有効化
-
-Windows PowerShell:
-
-```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-終了する場合:
-
-```powershell
-deactivate
-```
-
-### 4. 依存パッケージのインストール
+### 3. Pythonの依存関係をインストール
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-### 5. アプリケーションの起動
+### 4. JavaScriptの依存関係をインストール
+
+Node.jsとnpmをインストールしたうえで、以下を実行します。
 
 ```powershell
-python app.py
+npm ci
 ```
 
-ブラウザから次のURLにアクセスします。
+## アプリケーションの起動
 
-http://127.0.0.1:5001/
+```powershell
+python -m uvicorn app:app --reload --port 5001
+```
 
-Flaskの開発サーバーを使用しているため、本番環境での公開には別途適切なWSGIサーバーなどが必要です。
+ブラウザから以下にアクセスします。
 
-## API仕様
+- アプリ：http://127.0.0.1:5001/
+- APIドキュメント：http://127.0.0.1:5001/docs
 
-### `GET /`
+`--reload` は開発用オプションです。
 
-ゲーム画面のHTMLを返します。セッションにゲームが存在しない場合は新規作成します。
+## API
 
-### `GET /state`
+| Method | Endpoint | 説明 |
+|---|---|---|
+| GET | `/` | ゲーム画面を表示 |
+| GET | `/state` | 現在のゲーム状態を取得 |
+| POST | `/moves` | 指定座標に石を置く |
+| PATCH | `/mode` | PvPとPvCを切り替える |
+| POST | `/reset` | ゲームを初期化 |
 
-現在のゲーム状態を取得します。
+### 着手のリクエスト例
 
-### `POST /click`
-
-指定座標に石を置きます。
-
-リクエスト例：
+`POST /moves`
 
 ```json
 {
   "y": 2,
-  "x": 3,
-  "mode": "pvp"
+  "x": 3
 }
 ```
 
-座標は0始まりです。
+### モード切り替えのリクエスト例
 
-`y = -1`、`x = -1` は既存フロントエンドとの互換性のために残している状態取得用の特別な指定です。
-
-### `POST /reset`
-
-現在のセッションのゲーム盤面を初期化します。対戦モードは維持します。
-
-### レスポンス形式
+`PATCH /mode`
 
 ```json
 {
-  "board": [
-    [0, 0, 0, 0, 0, 0, 0, 0]
-  ],
-  "turn": 1,
-  "message": "",
-  "mode": "pvp",
-  "valid_moves": [
-    [2, 3],
-    [3, 2],
-    [4, 5],
-    [5, 4]
-  ]
+  "mode": "pvc"
 }
 ```
 
-上記の `board` は形式を説明するために1行のみ示しています。実際には8行8列の整数配列が返ります。
+ゲーム状態はJSON形式で返却されます。
 
-盤面の値：
-
-- `0`：空きマス
-- `1`：黒石
-- `2`：白石
-
-`turn` はゲーム終了時に `0` となります。
-
-入力エラーにはHTTP 400、ゲーム状態との競合にはHTTP 409を使用します。
-
-## CPUのアルゴリズム
-
-CPUは白石を担当します。
-
-Minimax法を使用し、プレイヤーが最善手を選択することを前提に先読み探索を行います。
-
-さらにαβ枝刈りによって、最終的な判断に影響しない探索分岐を省略します。
-
-盤面評価では以下を考慮しています。
-
-- 角などの位置の価値
-- 石数の差
-- 終局時の勝敗
-- 反転する石の周囲の空きマス
-
-探索深さは基本4、盤上の石が48個を超えた場合は5に設定しています（明示的な深さ指定がない場合）。
+座標やモードの入力はPydanticで検証します。不正な着手やゲーム状態に応じた操作エラーは、API側で処理します。
 
 ## テスト
 
-pytestを使用します。
-
-### 全テストを実行
+### Python
 
 ```powershell
 python -m pytest -v
 ```
 
-### 個別テストを実行
+ゲームロジック、CPU、API、スキーマ、セッション、ストレージなどを検証します。
+
+### JavaScript
 
 ```powershell
-python -m pytest tests/test_game_model.py -v
-python -m pytest tests/test_cpu.py -v
-python -m pytest tests/test_api.py -v
-python -m pytest tests/test_session.py -v
-python -m pytest tests/test_storage.py -v
-python -m pytest tests/test_service.py -v
+npm test
 ```
 
-各テストの主な対象は次のとおりです。
+Vitestとjsdomを使用して、ブラウザ側の処理を検証します。
 
-| テスト | 検証対象 |
-|---|---|
-| `test_game_model.py` | オセロのルールと状態遷移 |
-| `test_cpu.py` | CPU探索と盤面評価 |
-| `test_api.py` | HTTP APIの入出力 |
-| `test_session.py` | セッションの独立性 |
-| `test_storage.py` | ゲームの保存・取得・削除 |
-| `test_service.py` | ゲーム進行とCPU連携 |
+## 静的解析・フォーマット
 
-## セッションとゲーム状態の管理
+### Python：Ruff
 
-ブラウザのセッションCookieにはゲームIDを保存します。
+Lint：
 
-サーバー側では `GameStore` がゲームIDと `GameRecord` の対応関係を保持します。
+```powershell
+python -m ruff check .
+```
 
-`GameRecord` には以下の情報があります。
+フォーマットチェック：
 
-- `Game` インスタンス
-- 対戦モード
-- 排他制御用のロック
+```powershell
+python -m ruff format --check .
+```
 
-同じブラウザセッションでは対局を継続でき、別のブラウザセッションでは独立したゲームを利用できます。
+自動修正：
+
+```powershell
+python -m ruff check --fix .
+python -m ruff format .
+```
+
+自動修正後は差分を確認し、テストを再実行してください。
+
+### JavaScript：ESLint
+
+```powershell
+npm run lint
+```
+
+未定義変数や未使用変数などを検出します。
+
+## CI：GitHub Actions
+
+`.github/workflows/ci.yaml` でCIを管理します。
+
+CIでは次のチェックを実行します。
+
+**Python**
+1. 依存関係のインストール
+2. RuffによるLint
+3. Ruffによるフォーマットチェック
+4. pytest
+
+**JavaScript**
+1. 依存関係のインストール
+2. ESLint
+3. Vitest
+
+ワークフローは、設定されたブランチとファイル変更条件に基づいて起動します。
+
+ワークフローの権限は原則として読み取り専用とし、テストのためにコードを自動commit・pushする処理は設けていません。
+
+### GitHub CLIで実行状況を確認
+
+```powershell
+gh run list --workflow ci.yaml --limit 5
+```
+
+失敗した実行のログは、実行IDを指定して確認します。
+
+```powershell
+gh run view <RUN_ID> --log-failed
+```
+
+## 開発フロー
+
+開発は原則として作業ブランチで行い、変更単位を分けてcommitします。
+
+1. 作業ブランチで機能追加・修正を行う
+2. ローカルでLint・Format・テストを実行する
+3. 必要に応じてREADMEを更新する
+4. 変更内容ごとにcommitする
+5. GitHubにpushする
+6. CIの結果を確認する
+7. Pull Requestを通じてmainへの統合を行う
+
+CIを必須チェックとするブランチ保護は、設定の整合性を確認したうえで導入します。
 
 ## 現在の制約
 
-このプロジェクトは学習・ローカル開発向けの構成です。
+ゲーム状態はサーバーのメモリ上に保持しています。
 
-- ゲーム状態はメモリ内に保存され、サーバー再起動で消失します。
-- 複数のPythonプロセス間ではゲーム状態を共有できません。
-- ログイン認証は実装していません。
-- 古いゲームを自動削除する仕組みは未実装です。
-- CSRF対策や本番向けセッション設定は追加検討が必要です。
-- CPU探索は同期的に実行するため、探索が長い場合はレスポンスが遅くなります。
+そのため、サーバープロセスを再起動すると対局状態は失われます。また、複数プロセス間でゲーム状態を共有する仕組みもありません。
 
-## 今後の改善候補
+現時点では、開発・学習用途を中心とした構成です。
 
-- ゲーム状態の永続化（Redis / PostgreSQL）
-- ゲームデータの有効期限と自動削除
-- CPU探索の高速化
-- 難易度の選択
-- WebSocketを利用したリアルタイム対戦
-- CIによる自動テスト
-- デプロイ環境の整備
+## 今後の予定
 
-## 開発方針
+- [ ] CIの最終確認とmainブランチ保護
+- [ ] JavaScriptのテストケース拡充
+- [ ] SQLiteによるゲーム状態の永続化
+- [ ] CPUの探索性能改善・難易度設定
+- [ ] Dockerによる開発・実行環境の統一
+- [ ] 本番環境へのデプロイと監視
 
-機能追加だけでなく、リファクタリングを通じて次の設計原則を学ぶことを目的としています。
+## ライセンス
 
-- Separation of Concerns（関心の分離）
-- Encapsulation（カプセル化）
-- Dependency Injection（依存性注入）
-- Service Layer（サービス層）
-- Repository Pattern（リポジトリパターン）
-- Automated Testing（自動テスト）
-
-変更後はpytestとブラウザで動作確認を行い、正常動作を確認してからGitにコミットします。
+このプロジェクトは [MIT License](LICENSE) のもとで公開されています。
