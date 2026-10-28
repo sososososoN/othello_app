@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint static/js tests"
+    "lint": "eslint static/js test_js"
   },
   "repository": {
     "type": "git",

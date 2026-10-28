@@ -53,7 +53,8 @@ othello/
 │   ├── test_schemas.py
 │   ├── test_service.py
 │   ├── test_session.py
-│   ├── test_storage.py
+│   └── test_storage.py
+├── test_js/
 │   └── othello.test.js
 ├── app.py
 ├── cpu.py
@@ -174,11 +175,41 @@ python -m pytest -v
 
 ### JavaScript
 
+フロントエンドのテストは `test_js/` に配置しています。
+
+Vitestとjsdomを使用し、API通信をモックして画面の振る舞いを検証します。
+
+主なテスト対象：
+
+- 初期盤面と64マスの描画
+- 石と合法手の表示
+- 合法手クリック時のAPIリクエスト
+- 不正なマスのクリック防止
+- リセットとゲーム状態の初期化
+- PvP/PvC切り替え
+- 通信エラー発生時の表示と復旧
+- ゲーム終了時とCPU手番時の表示
+- 通信中の二重リクエスト防止
+
+テスト実行：
+
 ```powershell
 npm test
 ```
 
-Vitestとjsdomを使用して、ブラウザ側の処理を検証します。
+開発中の自動再実行：
+
+```powershell
+npm run test:watch
+```
+
+静的解析：
+
+```powershell
+npm run lint
+```
+
+JavaScriptテストは、Pythonの `tests/` と分離して管理しています。
 
 ## 静的解析・フォーマット
 
