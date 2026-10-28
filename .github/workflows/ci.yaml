@@ -16,6 +16,7 @@ on:
       - "eslint.config.mjs"
       - "static/js/**"
       - "tests/**"
+      - "test_js"
       - ".github/workflows/ci.yaml"
 
   pull_request:
