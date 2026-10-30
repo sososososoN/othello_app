@@ -1,4 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from copy import deepcopy
 from game import EMPTY, WHITE, Board, Position
 from cpu import choose_cpu_move
 from storage import GameRecord
@@ -7,7 +9,11 @@ CpuSelector = Callable[[Board], Position | None]
 
 
 class GameError(Exception):
-    def __init__(self, message: str, status_code: int = 400):
+    def __init__(
+        self,
+        message: str,
+        status_code: int = 400,
+    ):
         super().__init__(message)
         self.status_code = status_code
 
@@ -23,6 +29,19 @@ class GameService:
             cpu_selector if cpu_selector is not None else choose_cpu_move
         )
 
+    @contextmanager
+    def _update(self) -> Iterator[None]:
+        with self.record.lock:
+            original_game = deepcopy(self.record.game)
+            original_mode = self.record.mode
+            try:
+                yield
+                self.record.persist()
+            except Exception:
+                self.record.game = original_game
+                self.record.mode = original_mode
+                raise
+
     def state(self) -> dict:
         with self.record.lock:
             game = self.record.game
@@ -37,7 +56,7 @@ class GameService:
     def change_mode(self, mode: str) -> None:
         if mode not in ("pvp", "pvc"):
             raise GameError("Invalid game mode", 400)
-        with self.record.lock:
+        with self._update():
             if mode == self.record.mode:
                 return
             game = self.record.game
@@ -47,7 +66,7 @@ class GameService:
             self.record.mode = mode
 
     def play(self, y: int, x: int) -> None:
-        with self.record.lock:
+        with self._update():
             game = self.record.game
             if game.turn == EMPTY:
                 raise GameError("Game has ended", 409)
@@ -64,5 +83,5 @@ class GameService:
                         raise RuntimeError("CPU selected an illegal move")
 
     def reset(self) -> None:
-        with self.record.lock:
+        with self._update():
             self.record.game.reset()
