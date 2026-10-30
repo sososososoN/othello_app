@@ -163,6 +163,50 @@ python -m uvicorn app:app --reload --port 5001
 
 座標やモードの入力はPydanticで検証します。不正な着手やゲーム状態に応じた操作エラーは、API側で処理します。
 
+## ゲーム状態の永続化
+
+SQLiteを使用してゲーム状態を保存しています。
+
+保存対象は、ゲームID、8×8盤面、手番、ゲームモード、メッセージです。
+
+ゲームの状態は `data/othello.db` に保持され、サーバープロセスを再起動しても同じセッションから対局を再開できます。
+
+ただし、セッションCookieが保持されていること、`SESSION_SECRET_KEY` が変更されていないことが必要です。
+
+データベースファイルはGit管理対象外です。
+
+### 環境変数
+
+| 変数 | 説明 |
+|---|---|
+| `SESSION_SECRET_KEY` | セッションCookieの署名鍵 |
+| `OTHELLO_DB_PATH` | SQLiteのDBファイルパス |
+
+Windows PowerShellでの起動例：
+
+```powershell
+$env:SESSION_SECRET_KEY = "YOUR_SECRET_KEY"
+$env:OTHELLO_DB_PATH = "data/othello.db"
+
+python -m uvicorn app:app --reload --port 5001
+```
+
+署名鍵には、十分に長いランダムな値を使用してください。
+
+### SQLite関連テスト
+
+```powershell
+python -m pytest tests/test_sqlite_storage.py -v
+```
+
+すべてのPythonテストを実行する場合：
+
+```powershell
+python -m pytest -v
+```
+
+現段階のSQLite実装は単一サーバープロセス向けです。複数ワーカーによる同一ゲームの並行更新には対応していません。
+
 ## テスト
 
 ### Python

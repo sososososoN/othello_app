@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from storage import GameRecord, GameStore
+from storage import GameRecord, SQLiteGameStore
 from service import GameError, GameService
 from schemas import MoveRequest, ModeRequest, GameStateResponse
 
@@ -18,7 +18,7 @@ app = FastAPI(title="Othello API", version="1.0.0")
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=(os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)),
+    secret_key=(os.environ.get("SESSION_SECRET_KEY") or secrets.token_hex(32)),
     same_site="lax",
     https_only=False,
 )
@@ -31,7 +31,14 @@ app.mount(
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
-store = GameStore()
+db_path = Path(
+    os.environ.get(
+        "OTHELLO_DB_PATH",
+        str(BASE_DIR / "data" / "othello.db"),
+    )
+)
+
+store = SQLiteGameStore(db_path)
 
 
 def get_game(request: Request) -> GameRecord:

@@ -19,3 +19,14 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local SQLite databases
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Secrets
+.env
+
+SESSION_SECRET_KEY=replace-with-a-long-random-secret
+OTHELLO_DB_PATH=data/othello.db
