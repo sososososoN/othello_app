@@ -93,7 +93,7 @@ def create_player_move(
     service = GameService(record)
 
     with record.lock:
-        service.player_human(data.y, data.x)
+        service.play_human(data.y, data.x)
         return service.state()
 
 
