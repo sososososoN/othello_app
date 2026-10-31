@@ -191,6 +191,45 @@ python -m uvicorn app:app --reload --port 5001
 
 `--reload` は開発用オプションです。
 
+## Dockerによる起動
+
+Docker Composeを使用すると、ローカルにPythonの依存パッケージをインストールせずにアプリを実行できます。
+
+### 起動
+
+事前にDocker DesktopなどのDocker実行環境を用意し、プロジェクト直下の `.env` に `SESSION_SECRET_KEY` を設定してください。
+
+```powershell
+docker compose up --build -d
+```
+
+ブラウザから `http://127.0.0.1:5001/` にアクセスします。
+
+### ログ・状態確認
+
+```powershell
+docker compose ps
+docker compose logs -f web
+```
+
+### 停止
+
+```powershell
+docker compose down
+```
+
+### SQLiteの永続化
+
+ゲーム状態はDockerの名前付きVolume `othello_data` に保存されます。
+
+通常のコンテナ停止・再作成ではデータは削除されません。
+
+`docker compose down -v` を実行するとVolumeも削除されるため、注意してください。
+
+### ローカル実行との違い
+
+Docker実行時は、SQLiteデータベースが `/app/data/othello.db` に保存されます。通常のPython実行時の `data/othello.db` とは独立しています。
+
 ## API
 
 | Method | Endpoint | 説明 |
