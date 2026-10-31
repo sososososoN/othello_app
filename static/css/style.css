@@ -1,42 +1,104 @@
 
+:root {
+  --board-size: min(90vw, 480px);
+  --board-color: #25814c;
+  --board-border: #174b31;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px 12px;
+  background: #f5f6f7;
+  color: #202124;
+  font-family: system-ui, sans-serif;
+}
+
+.info-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  max-width: 650px;
+  text-align: center;
+}
+
+.info-area h2 {
+  width: 100%;
+  margin: 0 0 8px;
+}
+
+.info-area select,
+.info-area button {
+  padding: 8px 12px;
+  font: inherit;
+}
+
 #board {
-    display: grid;
-    grid-template-columns: repeat(8, 50px);
-    background: #222;
-    width: fit-content;
-    gap: 1px;
-    border: 5px solid #222;
-    margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: var(--board-size);
+  aspect-ratio: 1;
+  background: var(--board-border);
+  border: 5px solid var(--board-border);
+  gap: 1px;
+  margin-inline: auto;
 }
 
 .cell {
-    width: 50px;
-    height: 50px;
-    background: green;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  min-width: 0;
+  min-height: 0;
+  background: var(--board-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stone {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  width: 80%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 2px 2px 4px rgb(0 0 0 / 30%);
 }
 
-.black { background: black; }
-.white { background: white; }
+.black {
+  background: #151515;
+}
 
-.info-area {
-    font-family: sans-serif;
-    margin-bottom: 10px;
+.white {
+  background: #fff;
 }
 
 .hint {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.25);
+  width: 25%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 25%);
+}
+
+@media (max-width: 480px) {
+  body {
+    gap: 16px;
+  }
+
+  .info-area {
+    gap: 8px;
+  }
+
+  .info-area select,
+  .info-area button {
+    padding: 8px;
+  }
 }

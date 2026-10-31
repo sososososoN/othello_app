@@ -84,6 +84,29 @@ def create_move(request: Request, data: MoveRequest):
         return service.state()
 
 
+@app.post("/moves/player", response_model=GameStateResponse)
+def create_player_move(
+    request: Request,
+    data: MoveRequest,
+) -> dict:
+    record = get_game(request)
+    service = GameService(record)
+
+    with record.lock:
+        service.player_human(data.y, data.x)
+        return service.state()
+
+
+@app.post("/moves/cpu", response_model=GameStateResponse)
+def create_cpu_move(request: Request) -> dict:
+    record = get_game(request)
+    service = GameService(record)
+
+    with record.lock:
+        service.play_cpu()
+        return service.state()
+
+
 @app.patch("/mode", response_model=GameStateResponse)
 def update_mode(request: Request, data: ModeRequest):
     record = get_game(request)
