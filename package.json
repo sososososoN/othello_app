@@ -1,7 +1,7 @@
 {
   "name": "othello",
   "version": "1.0.0",
-  "description": "PythonのFlaskで構築したWeb版オセロアプリケーションです。",
+  "description": "FastAPIとJavaScriptで開発したWeb版オセロゲーム",
   "main": "index.js",
   "directories": {
     "test": "tests"
@@ -19,8 +19,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/sososososoN/---_app/issues"
   },
