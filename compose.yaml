@@ -1,0 +1,38 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "127.0.0.1:5001:5001"
+
+    environment:
+      # .envからセッション署名鍵を受け取る
+      # 未設定の場合はComposeの起動を中止する
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:?Set SESSION_SECRET_KEY in .env}
+
+      # SQLiteの保存先をコンテナ内の固定パスにする
+      OTHELLO_DB_PATH: /app/data/othello.db
+
+    volumes:
+      # コンテナを再作成してもDBを保持する
+      - othello_data:/app/data
+
+    healthcheck:
+      # セッションを作成しないOpenAPIエンドポイントで生存確認
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/openapi.json', timeout=3).close()"
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    restart: unless-stopped
+
+volumes:
+  othello_data:
