@@ -6,12 +6,14 @@ const boardElement = document.getElementById("board");
 const infoElement = document.getElementById("info");
 const modeElement = document.getElementById("mode");
 const resetButton = document.getElementById("reset-button");
+const difficultyElement = document.getElementById("difficulty");
 
 // ゲーム中の画面側の状態
 let gameStarted = false;
 let isLoading = false;
 let currentTurn = 1;
 let currentMode = "pvp";
+let currentDifficulty = "normal";
 
 async function requestJson(url, method = "GET", body = null) {
     const options = { method };
@@ -56,13 +58,24 @@ async function runRequest(task) {
     }
 }
 
+function updateControls() {
+    modeElement.disabled = gameStarted;
+    difficultyElement.disabled =
+        gameStarted || currentMode !== "pvc";
+    difficultyElement.value = currentDifficulty;
+}
+
 // Flaskから受け取った盤面を描画する
 function drawBoard(state) {
     boardElement.replaceChildren();
 
     modeElement.value = state.mode;
+
     currentTurn = state.turn;
     currentMode = state.mode;
+    currentDifficulty = state.difficulty ?? "normal";
+
+    updateControls();
 
     if (state.turn === 0) {
         infoElement.textContent = state.message || "ゲーム終了";
@@ -132,7 +145,6 @@ async function sendMove(y, x) {
         );
 
         gameStarted = true;
-        modeElement.disabled = true;
 
         drawBoard(state);
     });
@@ -145,7 +157,6 @@ async function resetGame() {
         const state = await requestJson("/reset", "POST", {});
 
         gameStarted = false;
-        modeElement.disabled = false;
         drawBoard(state);
     });
 }
@@ -161,7 +172,6 @@ async function initializeGame() {
             .length;
 
         gameStarted = stoneCount > 4 || state.turn === 0;
-        modeElement.disabled = gameStarted;
 
         drawBoard(state);
     });
@@ -190,8 +200,40 @@ async function changeMode() {
     }
 }
 
+async function changeDifficulty() {
+    if (
+        isLoading ||
+        gameStarted ||
+        currentMode !== "pvc"
+    ) {
+        difficultyElement.value = currentDifficulty;
+        return;
+    }
+
+    const selectedDifficulty = difficultyElement.value;
+
+    const success = await runRequest(async () => {
+        const state = await requestJson(
+            "/difficulty",
+            "PATCH",
+            { difficulty: selectedDifficulty }
+        );
+
+        drawBoard(state);
+    });
+
+    if (!success) {
+        difficultyElement.value = currentDifficulty;
+    }
+}
+
+
 modeElement.addEventListener("change", () => {
     void changeMode();
+});
+
+difficultyElement.addEventListener("change", () =>{
+    void changeDifficulty();
 });
 
 // イベントを登録する

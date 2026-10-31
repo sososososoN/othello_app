@@ -108,7 +108,7 @@ def test_cpu_game(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr(
         game_service,
         "choose_cpu_move",
-        lambda board: (2, 2),
+        lambda board, depth: (2, 2),
     )
 
     mode_response = client.patch(
@@ -217,3 +217,44 @@ def test_old_click_endpoint_removed(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
+    
+
+def test_change_difficulty_api(client) -> None:
+
+    client.get("/state")
+
+    mode_response = client.patch(
+        "/mode",
+        json={"mode": "pvc"},
+    )
+    assert mode_response.status_code == 200
+
+    response = client.patch(
+        "/difficulty",
+        json={"difficulty": "hard"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["difficulty"] == "hard"
+
+    restored = client.get("/state")
+    assert restored.json()["difficulty"] == "hard"
+
+
+def test_invalid_difficulty_returns_422(client) -> None:
+    response = client.patch(
+        "/difficulty",
+        json={"difficulty": "expert"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_difficulty_requires_pvc_api(client) -> None:
+    response = client.patch(
+        "/difficulty",
+        json={"difficulty": "easy"},
+    )
+
+    assert response.status_code == 409
+

@@ -24,6 +24,12 @@ WEIGHTS = (
 
 WIN_SCORE = 100_000
 
+DIFFICULTY_DEPTH: dict[str, int] = {
+    "easy": 1,
+    "normal": 3,
+    "hard": 5,
+}
+
 
 def apply_move(
     board: Board,

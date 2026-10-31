@@ -1,12 +1,13 @@
-import pytest
 
+import pytest
 from pydantic import ValidationError
 
 from game import Game
-from schemas import GameStateResponse, MoveRequest
+from schemas import DifficultyRequest, GameStateResponse, MoveRequest
 
 
 def valid_state() -> dict:
+    """正常なゲーム状態のテストデータを作成する。"""
     game = Game()
 
     return {
@@ -14,6 +15,7 @@ def valid_state() -> dict:
         "turn": game.turn,
         "message": game.message,
         "mode": "pvp",
+        "difficulty": "normal",
         "valid_moves": [[y, x] for y, x in game.valid_moves()],
     }
 
@@ -23,6 +25,7 @@ def test_valid_game_state() -> None:
 
     assert state.turn == 1
     assert state.mode == "pvp"
+    assert state.difficulty == "normal"
     assert len(state.board) == 8
 
 
@@ -67,11 +70,7 @@ def test_invalid_valid_move() -> None:
 
 
 def test_valid_move_request() -> None:
-    move = MoveRequest(
-        y=2,
-        x=3,
-        mode="pvp",
-    )
+    move = MoveRequest(y=2, x=3)
 
     assert move.y == 2
     assert move.x == 3
@@ -79,8 +78,53 @@ def test_valid_move_request() -> None:
 
 def test_invalid_move_request_type() -> None:
     with pytest.raises(ValidationError):
-        MoveRequest(
-            y="2",
-            x=3,
-            mode="pvp",
-        )
+        MoveRequest(y="2", x=3)
+
+
+@pytest.mark.parametrize(
+    "difficulty",
+    ["easy", "normal", "hard"],
+)
+def test_valid_difficulty_request(difficulty: str) -> None:
+    request = DifficultyRequest(difficulty=difficulty)
+
+    assert request.difficulty == difficulty
+
+
+def test_invalid_difficulty_request() -> None:
+    with pytest.raises(ValidationError):
+        DifficultyRequest(difficulty="expert")
+
+
+def test_missing_difficulty_request() -> None:
+    with pytest.raises(ValidationError):
+        DifficultyRequest.model_validate({})
+
+
+@pytest.mark.parametrize(
+    "difficulty",
+    ["easy", "normal", "hard"],
+)
+def test_valid_difficulty_in_game_state(difficulty: str) -> None:
+    data = valid_state()
+    data["difficulty"] = difficulty
+
+    state = GameStateResponse.model_validate(data)
+
+    assert state.difficulty == difficulty
+
+
+def test_invalid_difficulty_in_game_state() -> None:
+    data = valid_state()
+    data["difficulty"] = "expert"
+
+    with pytest.raises(ValidationError):
+        GameStateResponse.model_validate(data)
+
+
+def test_missing_difficulty_in_game_state() -> None:
+    data = valid_state()
+    del data["difficulty"]
+
+    with pytest.raises(ValidationError):
+        GameStateResponse.model_validate(data)

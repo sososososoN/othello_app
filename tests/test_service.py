@@ -93,3 +93,53 @@ def test_state_is_snapshot() -> None:
     state["board"][3][3] = 0
 
     assert service.state()["board"][3][3] == WHITE
+
+
+def test_difficulty_defaults_to_normal() -> None:
+    service = GameService(GameRecord())
+    assert service.state()["difficulty"] == "normal"
+
+
+def test_change_difficulty_in_pvc() -> None:
+    record = GameRecord(mode="pvc")
+    service = GameService(record)
+
+    service.change_difficulty("hard")
+
+    assert service.state()["difficulty"] == "hard"
+
+
+def test_change_difficulty_requires_pvc() -> None:
+    service = GameService(GameRecord())
+
+    with pytest.raises(GameError) as exc_info:
+        service.change_difficulty("easy")
+
+    assert exc_info.value.status_code == 409
+
+
+def test_difficulty_cannot_change_after_move() -> None:
+    record = GameRecord(mode="pvc")
+    service = GameService(
+        record,
+        cpu_selector=lambda board: (2, 4),
+    )
+
+    service.play(2, 3)
+
+    with pytest.raises(GameError) as exc_info:
+        service.change_difficulty("hard")
+
+    assert exc_info.value.status_code == 409
+    assert record.difficulty == "normal"
+
+
+def test_reset_preserves_difficulty() -> None:
+    record = GameRecord(mode="pvc")
+    service = GameService(record)
+
+    service.change_difficulty("easy")
+    service.reset()
+
+    assert service.state()["difficulty"] == "easy"
+    assert service.state()["turn"] == BLACK
