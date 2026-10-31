@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
 from game import EMPTY, WHITE, Board, Position
-from cpu import choose_cpu_move
+from cpu import DIFFICULTY_DEPTH, choose_cpu_move
 from storage import GameRecord
 
 CpuSelector = Callable[[Board], Position | None]
@@ -25,21 +25,21 @@ class GameService:
         cpu_selector: CpuSelector | None = None,
     ) -> None:
         self.record = record
-        self.cpu_selector = (
-            cpu_selector if cpu_selector is not None else choose_cpu_move
-        )
+        self.cpu_selector = cpu_selector
 
     @contextmanager
     def _update(self) -> Iterator[None]:
         with self.record.lock:
             original_game = deepcopy(self.record.game)
             original_mode = self.record.mode
+            original_difficulty = self.record.difficulty
             try:
                 yield
                 self.record.persist()
             except Exception:
                 self.record.game = original_game
                 self.record.mode = original_mode
+                self.record.difficulty = original_difficulty
                 raise
 
     def state(self) -> dict:
@@ -50,6 +50,7 @@ class GameService:
                 "turn": game.turn,
                 "message": game.message,
                 "mode": self.record.mode,
+                "difficulty": self.record.difficulty,
                 "valid_moves": [[y, x] for y, x in game.valid_moves()],
             }
 
@@ -65,6 +66,29 @@ class GameService:
                 raise GameError("Reset before changing mode", 409)
             self.record.mode = mode
 
+    def change_difficulty(self, difficulty: str) -> None:
+        if difficulty not in DIFFICULTY_DEPTH:
+            raise GameError("Invalid difficulty", 400)
+
+        with self._update():
+            if self.record.mode != "pvc":
+                raise GameError(
+                    "Difficulty is available only in PvC mode",
+                    409,
+                )
+
+            game = self.record.game
+
+            stone_count = sum(cell != EMPTY for row in game.board for cell in row)
+
+            if stone_count > 4 or game.turn == EMPTY:
+                raise GameError(
+                    "Reset before changing difficulty",
+                    409,
+                )
+
+            self.record.difficulty = difficulty
+
     def play(self, y: int, x: int) -> None:
         with self._update():
             game = self.record.game
@@ -76,7 +100,11 @@ class GameService:
                 raise GameError("Illegal move", 400)
             if self.record.mode == "pvc":
                 while game.turn == WHITE:
-                    move = self.cpu_selector(game.board)
+                    if self.cpu_selector is not None:
+                        move = self.cpu_selector(game.board)
+                    else:
+                        depth = DIFFICULTY_DEPTH[self.record.difficulty]
+                        move = choose_cpu_move(game.board, depth=depth)
                     if move is None:
                         raise RuntimeError("CPU has no valid move")
                     if not game.place(*move):

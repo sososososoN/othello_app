@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field, StrictInt
 
 GameMode = Literal["pvp", "pvc"]
 
+Difficulty = Literal["easy", "normal", "hard"]
+
 Cell = Literal[0, 1, 2]
 
 Coordinate = Annotated[
@@ -35,9 +37,14 @@ class ModeRequest(BaseModel):
     mode: GameMode
 
 
+class DifficultyRequest(BaseModel):
+    difficulty: Difficulty
+
+
 class GameStateResponse(BaseModel):
     board: BoardSchema
     turn: Literal[0, 1, 2]
     message: str
     mode: GameMode
+    difficulty: Difficulty
     valid_moves: list[ValidMove]

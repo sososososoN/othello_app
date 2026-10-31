@@ -9,7 +9,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint static/js test_js"
+    "lint": "eslint static/js test_js",
+    "format": "prettier --write \"static/js/**/*.js\" \"test_js/**/*.js\"",
+    "format:check": "prettier --check \"static/js/**/*.js\" \"test_js/**/*.js\""
   },
   "repository": {
     "type": "git",
@@ -28,6 +30,7 @@
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
     "vitest": "^5.0.5"
   }
 }

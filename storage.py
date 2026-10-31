@@ -15,6 +15,7 @@ from game import Game
 class GameRecord:
     game: Game = field(default_factory=Game)
     mode: str = "pvp"
+    difficulty: str = "normal"
     lock: RLock = field(default_factory=RLock)
     save_callback: Callable[[], None] | None = field(
         default=None,
@@ -89,10 +90,27 @@ class SQLiteGameStore(GameStore):
                     board TEXT NOT NULL,
                     turn INTEGER NOT NULL,
                     mode TEXT NOT NULL,
-                    message TEXT NOT NULL
+                    message TEXT NOT NULL,
+                    difficulty TEXT NOT NULL DEFAULT 'normal'
+                        CHECK (difficulty IN ('easy', 'normal', 'hard'))
                 )
                 """
             )
+
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(games)").fetchall()
+            }
+
+            if "difficulty" not in columns:
+                connection.execute(
+                    """
+                    ALTER TABLE games
+                    ADD COLUMN difficulty TEXT NOT NULL
+                    DEFAULT 'normal'
+                    CHECK (difficulty IN ('easy', 'normal', 'hard'))
+                    """
+                )
 
     def _bind(self, game_id: str, record: GameRecord) -> None:
         record.save_callback = lambda: self._save(
@@ -111,15 +129,17 @@ class SQLiteGameStore(GameStore):
                         board,
                         turn,
                         mode,
-                        message
+                        message,
+                        difficulty
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT (game_id)
                     DO UPDATE SET
                         board = excluded.board,
                         turn = excluded.turn,
                         mode = excluded.mode,
-                        message = excluded.message
+                        message = excluded.message,
+                        difficulty = excluded.difficulty
                     """,
                     (
                         game_id,
@@ -127,6 +147,7 @@ class SQLiteGameStore(GameStore):
                         game.turn,
                         record.mode,
                         game.message,
+                        record.difficulty,
                     ),
                 )
 
@@ -149,7 +170,7 @@ class SQLiteGameStore(GameStore):
             with self._connection() as connection:
                 row = connection.execute(
                     """
-                    SELECT board, turn, mode, message
+                    SELECT board, turn, mode, message, difficulty
                     FROM games
                     WHERE game_id = ?
                     """,
@@ -157,7 +178,7 @@ class SQLiteGameStore(GameStore):
                 ).fetchone()
             if row is None:
                 return None
-            board, turn, mode, message = row
+            board, turn, mode, message, difficulty = row
             record = GameRecord(
                 game=Game(
                     board=json.loads(board),
@@ -165,6 +186,7 @@ class SQLiteGameStore(GameStore):
                     message=message,
                 ),
                 mode=mode,
+                difficulty=difficulty,
             )
             self._bind(game_id, record)
             self._records[game_id] = record

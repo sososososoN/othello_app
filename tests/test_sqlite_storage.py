@@ -166,3 +166,48 @@ def test_save_failure_rolls_back_memory(db_path, monkeypatch):
 
     assert restored is not None
     assert restored.game.stone_counts() == (2, 2)
+
+
+def test_difficulty_persistence(db_path) -> None:
+    store1 = SQLiteGameStore(db_path)
+    game_id, record = store1.create()
+
+    service = GameService(record)
+    service.change_mode("pvc")
+    service.change_difficulty("hard")
+
+    store2 = SQLiteGameStore(db_path)
+    restored = store2.get(game_id)
+
+    assert restored is not None
+    assert restored.difficulty == "hard"
+
+
+def test_existing_database_migrates_without_data_loss(
+    db_path,
+) -> None:
+    # 旧スキーマのDBを準備
+    store = SQLiteGameStore(db_path)
+    game_id, _ = store.create()
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE games_old AS
+            SELECT game_id, board, turn, mode, message
+            FROM games
+            """
+        )
+        connection.execute("DROP TABLE games")
+        connection.execute(
+            """
+            ALTER TABLE games_old RENAME TO games
+            """
+        )
+
+    restarted = SQLiteGameStore(db_path)
+    restored = restarted.get(game_id)
+
+    assert restored is not None
+    assert restored.difficulty == "normal"
+    assert restarted.count() == 1

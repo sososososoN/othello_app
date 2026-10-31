@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from storage import GameRecord, SQLiteGameStore
 from service import GameError, GameService
-from schemas import MoveRequest, ModeRequest, GameStateResponse
+from schemas import MoveRequest, ModeRequest, DifficultyRequest, GameStateResponse
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -87,6 +87,22 @@ def update_mode(request: Request, data: ModeRequest):
     service = GameService(record)
     with record.lock:
         service.change_mode(data.mode)
+        return service.state()
+
+
+@app.patch(
+    "/difficulty",
+    response_model=GameStateResponse,
+)
+def update_difficulty(
+    request: Request,
+    data: DifficultyRequest,
+):
+    record = get_game(request)
+    service = GameService(record)
+
+    with record.lock:
+        service.change_difficulty(data.difficulty)
         return service.state()
 
 
