@@ -121,15 +121,32 @@ function drawBoard(state) {
   });
 }
 
+function waitForPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+async function finishCpuTurn(state) {
+  if (state.mode !== "pvc" || state.turn !== 2) return;
+
+  infoElement.textContent = "CPUが考えています…";
+  await waitForPaint();
+
+  const cpuState = await requestJson("/moves/cpu", "POST", {});
+  drawBoard(cpuState);
+}
+
 async function sendMove(y, x) {
   if (isLoading || currentTurn === 0) return;
 
   await runRequest(async () => {
-    const state = await requestJson("/moves", "POST", { y, x });
-
+    const state = await requestJson("/moves/player", "POST", { y, x });
     gameStarted = true;
-
     drawBoard(state);
+    await finishCpuTurn(state);
   });
 }
 
@@ -147,12 +164,12 @@ async function resetGame() {
 async function initializeGame() {
   await runRequest(async () => {
     const state = await requestJson("/state");
-    modeElement.value = state.mode;
     const stoneCount = state.board.flat().filter((cell) => cell !== 0).length;
 
     gameStarted = stoneCount > 4 || state.turn === 0;
-
     drawBoard(state);
+
+    await finishCpuTurn(state);
   });
 }
 
