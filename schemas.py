@@ -35,7 +35,7 @@ class MoveRequest(BaseModel):
 
 class ModeRequest(BaseModel):
     mode: GameMode
-    
+
 
 class DifficultyRequest(BaseModel):
     difficulty: Difficulty

@@ -65,32 +65,28 @@ class GameService:
             if stone_count > 4 or game.turn == EMPTY:
                 raise GameError("Reset before changing mode", 409)
             self.record.mode = mode
-            
+
     def change_difficulty(self, difficulty: str) -> None:
         if difficulty not in DIFFICULTY_DEPTH:
             raise GameError("Invalid difficulty", 400)
-        
+
         with self._update():
             if self.record.mode != "pvc":
                 raise GameError(
                     "Difficulty is available only in PvC mode",
                     409,
                 )
-            
+
             game = self.record.game
-            
-            stone_count = sum(
-                cell != EMPTY
-                for row in game.board
-                for cell in row
-            )
-            
+
+            stone_count = sum(cell != EMPTY for row in game.board for cell in row)
+
             if stone_count > 4 or game.turn == EMPTY:
                 raise GameError(
                     "Reset before changing difficulty",
                     409,
                 )
-            
+
             self.record.difficulty = difficulty
 
     def play(self, y: int, x: int) -> None:

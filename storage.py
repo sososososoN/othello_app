@@ -96,14 +96,12 @@ class SQLiteGameStore(GameStore):
                 )
                 """
             )
-            
-            columns ={
+
+            columns = {
                 row[1]
-                for row in connection.execute(
-                    "PRAGMA table_info(games)"
-                ).fetchall()
+                for row in connection.execute("PRAGMA table_info(games)").fetchall()
             }
-            
+
             if "difficulty" not in columns:
                 connection.execute(
                     """
@@ -188,7 +186,7 @@ class SQLiteGameStore(GameStore):
                     message=message,
                 ),
                 mode=mode,
-                difficulty=difficulty
+                difficulty=difficulty,
             )
             self._bind(game_id, record)
             self._records[game_id] = record

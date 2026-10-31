@@ -217,7 +217,7 @@ def test_old_click_endpoint_removed(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
-    
+
 
 def test_change_difficulty_api(client) -> None:
 
@@ -257,4 +257,3 @@ def test_difficulty_requires_pvc_api(client) -> None:
     )
 
     assert response.status_code == 409
-

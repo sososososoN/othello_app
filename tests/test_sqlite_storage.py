@@ -166,7 +166,8 @@ def test_save_failure_rolls_back_memory(db_path, monkeypatch):
 
     assert restored is not None
     assert restored.game.stone_counts() == (2, 2)
-    
+
+
 def test_difficulty_persistence(db_path) -> None:
     store1 = SQLiteGameStore(db_path)
     game_id, record = store1.create()
@@ -210,4 +211,3 @@ def test_existing_database_migrates_without_data_loss(
     assert restored is not None
     assert restored.difficulty == "normal"
     assert restarted.count() == 1
-

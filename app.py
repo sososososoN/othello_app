@@ -88,7 +88,7 @@ def update_mode(request: Request, data: ModeRequest):
     with record.lock:
         service.change_mode(data.mode)
         return service.state()
-    
+
 
 @app.patch(
     "/difficulty",
@@ -104,7 +104,6 @@ def update_difficulty(
     with record.lock:
         service.change_difficulty(data.difficulty)
         return service.state()
-
 
 
 @app.post("/reset", response_model=GameStateResponse)
