@@ -44,10 +44,10 @@ def apply_move(
 def evaluate_board(board: Board) -> int:
     black = sum(row.count(BLACK) for row in board)
     white = sum(row.count(WHITE) for row in board)
-    
+
     black_moves = get_valid_moves(board, BLACK)
     white_moves = get_valid_moves(board, WHITE)
-    
+
     if not black_moves and not white_moves:
         difference = white - black
         if difference > 0:
@@ -55,14 +55,14 @@ def evaluate_board(board: Board) -> int:
         if difference < 0:
             return -WIN_SCORE + difference
         return 0
-    
+
     stone_count = black + white
 
     if stone_count > 54:
         return white - black
 
     position_score = 0
-    
+
     for y, row in enumerate(board):
         for x, cell in enumerate(row):
             if cell == WHITE:
@@ -72,25 +72,21 @@ def evaluate_board(board: Board) -> int:
 
     mobility_score = len(white_moves) - len(black_moves)
     corners = (
-        (0,0),
-        (0,7),
-        (7,0),
-        (7,7),
+        (0, 0),
+        (0, 7),
+        (7, 0),
+        (7, 7),
     )
-    
+
     corner_score = 0
-    
+
     for y, x in corners:
         if board[y][x] == WHITE:
             corner_score += 1
         elif board[y][x] == BLACK:
             corner_score -= 1
-    
-    return (
-        position_score
-        + mobility_score * 5
-        +corner_score * 25
-    )
+
+    return position_score + mobility_score * 5 + corner_score * 25
 
 
 def count_adjacent_empty_cells(
@@ -104,6 +100,7 @@ def count_adjacent_empty_cells(
         if 0 <= ny < 8 and 0 <= nx < 8 and board[ny][nx] == EMPTY:
             count += 1
     return count
+
 
 def order_moves(
     board: Board,

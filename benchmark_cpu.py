@@ -1,4 +1,3 @@
-
 from statistics import mean
 from time import perf_counter
 

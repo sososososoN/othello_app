@@ -64,7 +64,7 @@ def test_minimax_pass() -> None:
     )
 
     assert score < -WIN_SCORE
-    
+
 
 def test_order_moves_prioritizes_high_weight_cells() -> None:
     board = create_board()
