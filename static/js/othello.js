@@ -60,7 +60,6 @@ function updateControls() {
   difficultyElement.value = currentDifficulty;
 }
 
-// Flaskから受け取った盤面を描画する
 function drawBoard(state) {
   boardElement.replaceChildren();
 

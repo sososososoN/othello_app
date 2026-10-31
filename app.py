@@ -1,5 +1,4 @@
 import os
-import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -16,9 +15,13 @@ BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Othello API", version="1.0.0")
 
+session_secret_key = os.environ.get("SESSION_SECRET_KEY")
+if session_secret_key is None or len(session_secret_key) < 32:
+    raise RuntimeError("SESSION_SECRET_KEY must contain at least 32 characters")
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=(os.environ.get("SESSION_SECRET_KEY") or secrets.token_hex(32)),
+    secret_key=session_secret_key,
     same_site="lax",
     https_only=False,
 )
