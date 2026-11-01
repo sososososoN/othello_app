@@ -9,6 +9,7 @@ from game import (
     get_flippable_stones,
     get_valid_moves,
 )
+from ai.models import SearchStats
 
 
 def apply_move(
@@ -54,8 +55,12 @@ def minimax(
     alpha: float,
     beta: float,
     player: int,
+    stats: SearchStats | None = None,
 ) -> int:
     """αβ枝刈りを用いて局面のMinimax評価値を返す。"""
+    if stats is not None:
+        stats.nodes_visited += 1
+
     if player not in (BLACK, WHITE):
         raise ValueError("Invalid player")
 
@@ -79,31 +84,21 @@ def minimax(
         if not opponent_moves:
             return evaluate_board(board)
 
-        return minimax(
-            board,
-            depth - 1,
-            alpha,
-            beta,
-            opponent,
-        )
+        return minimax(board, depth - 1, alpha, beta, opponent, stats=stats)
 
     if player == WHITE:
         best = -inf
 
         for y, x in moves:
             next_board = apply_move(board, y, x, player)
-            value = minimax(
-                next_board,
-                depth - 1,
-                alpha,
-                beta,
-                opponent,
-            )
+            value = minimax(next_board, depth - 1, alpha, beta, opponent, stats=stats)
 
             best = max(best, value)
             alpha = max(alpha, best)
 
             if alpha >= beta:
+                if stats is not None:
+                    stats.cutoffs += 1
                 break
 
         return int(best)
@@ -112,18 +107,14 @@ def minimax(
 
     for y, x in moves:
         next_board = apply_move(board, y, x, player)
-        value = minimax(
-            next_board,
-            depth - 1,
-            alpha,
-            beta,
-            opponent,
-        )
+        value = minimax(next_board, depth - 1, alpha, beta, opponent, stats=stats)
 
         best = min(best, value)
         beta = min(beta, best)
 
         if alpha >= beta:
+            if stats is not None:
+                stats.cutoffs += 1
             break
 
     return int(best)
