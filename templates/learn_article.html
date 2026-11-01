@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ article.title }} | Othello AI Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/learning.css') }}">
+  {% if article.slug == "minimax" %}
+    <script src="{{ url_for('static', path='js/minimax-demo.js') }}" defer></script>
+  {% endif %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/learn">Othello AI Lab</a>
+    <nav aria-label="メインナビゲーション">
+      <a href="/">オセロで遊ぶ</a>
+      <a href="/learn">アルゴリズムを学ぶ</a>
+    </nav>
+  </header>
+
+  <main class="page article-page">
+    <a class="back-link" href="/learn">← 記事一覧へ戻る</a>
+
+    <div class="article-meta">
+      <span class="level">{{ article.level }}</span>
+      <span>ゲーム木探索</span>
+    </div>
+
+    <article class="article-body">
+      {{ content | safe }}
+    </article>
+
+    {% if article.slug == "minimax" %}
+      <section class="demo" aria-labelledby="demo-heading">
+        <p class="eyebrow">INTERACTIVE DEMO</p>
+        <h2 id="demo-heading">Minimaxを体験する</h2>
+        <p>
+          下のA・Bから候補を選んでください。
+          相手（MIN）が最善の手を選んだ場合の評価値を確認できます。
+        </p>
+
+        <div class="tree" aria-label="Minimaxの探索木">
+          <div class="tree-root">MAX</div>
+
+          <div class="tree-branches">
+            <div class="tree-branch">
+              <div class="tree-node">候補A / MIN</div>
+              <div class="tree-leaves">
+                <span>3</span>
+                <span>5</span>
+              </div>
+            </div>
+
+            <div class="tree-branch">
+              <div class="tree-node">候補B / MIN</div>
+              <div class="tree-leaves">
+                <span>2</span>
+                <span>9</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <fieldset class="choice-group">
+          <legend>MAXはどちらを選ぶべきでしょうか？</legend>
+          <label>
+            <input type="radio" name="minimax-choice" value="A">
+            候補A
+          </label>
+          <label>
+            <input type="radio" name="minimax-choice" value="B">
+            候補B
+          </label>
+        </fieldset>
+
+        <div id="minimax-result" class="demo-result" role="status" aria-live="polite">
+          候補を選択すると解説が表示されます。
+        </div>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

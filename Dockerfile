@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py cpu.py game.py schemas.py service.py storage.py ./
 COPY static/ ./staic/
 COPY templates/ ./templates/
+COPY learning/ ./learning/
+COPY content/ ./content/
 
 RUN mkdir -p /app/data
 

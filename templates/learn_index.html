@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>アルゴリズムを学ぶ | Othello AI Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/learning.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/learn">Othello AI Lab</a>
+    <nav aria-label="メインナビゲーション">
+      <a href="/">オセロで遊ぶ</a>
+      <a href="/learn" aria-current="page">アルゴリズムを学ぶ</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">LEARN AI ALGORITHMS</p>
+      <h1>オセロで学ぶAIアルゴリズム</h1>
+      <p>
+        CPUは、どのように次の一手を決めているのでしょうか。
+        ゲーム木探索や評価関数を、解説とデモを通じて学びます。
+      </p>
+    </section>
+
+    <section aria-labelledby="articles-heading">
+      <h2 id="articles-heading">学習コラム</h2>
+      <div class="article-grid">
+        {% for article in articles %}
+          <a class="article-card" href="/learn/{{ article.slug }}">
+            <span class="level">{{ article.level }}</span>
+            <h3>{{ article.title }}</h3>
+            <p>{{ article.description }}</p>
+            <span class="article-link">記事を読む →</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

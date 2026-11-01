@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -10,6 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from storage import GameRecord, SQLiteGameStore
 from service import GameError, GameService
 from schemas import MoveRequest, ModeRequest, DifficultyRequest, GameStateResponse
+from learning.articles import get_article, list_articles, render_article
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -139,3 +140,32 @@ def handle_reset(request: Request):
     with record.lock:
         service.reset()
         return service.state()
+    
+
+@app.get("/learn", response_class=HTMLResponse)
+def learn_index(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="learn_index.html",
+        context={"articles": list_articles()},
+    )
+
+
+@app.get("/learn/{slug}", response_class=HTMLResponse)
+def learn_article(request: Request, slug: str):
+    article = get_article(slug)
+    if article is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    content = render_article(slug)
+    if content is None:
+        raise HTTPException(status_code=404, detail="Article content not found")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="learn_article.html",
+        context={
+            "article": article,
+            "content": content,
+        },
+    )
