@@ -4,14 +4,12 @@ import pytest
 
 from game import BLACK, WHITE, Game, create_board, get_valid_moves
 from cpu import (
-    WEIGHTS,
-    WIN_SCORE,
     apply_move,
     choose_cpu_move,
-    evaluate_board,
     minimax,
     order_moves,
 )
+from ai.evaluation import evaluate_board, WIN_SCORE, WEIGHTS
 
 
 def test_apply_move() -> None:
