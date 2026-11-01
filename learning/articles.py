@@ -1,10 +1,10 @@
-
 from dataclasses import dataclass
 from pathlib import Path
 
 import markdown
 
-CONTENT_DIR = Path(__file__).resolve().parent.parent /"content" / "algorithms"
+CONTENT_DIR = Path(__file__).resolve().parent.parent / "content" / "algorithms"
+
 
 @dataclass(frozen=True)
 class Article:
@@ -12,7 +12,8 @@ class Article:
     title: str
     description: str
     level: str
-    
+
+
 ARTICLES: tuple[Article, ...] = (
     Article(
         slug="minimax",
@@ -35,10 +36,10 @@ def render_article(slug: str) -> str | None:
     article = get_article(slug)
     if article is None:
         return None
-    
+
     path = CONTENT_DIR / f"{article.slug}.md"
     source = path.read_text(encoding="utf-8")
-    
+
     return markdown.markdown(
         source,
         extensions=["fenced_code", "tables"],

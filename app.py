@@ -140,7 +140,7 @@ def handle_reset(request: Request):
     with record.lock:
         service.reset()
         return service.state()
-    
+
 
 @app.get("/learn", response_class=HTMLResponse)
 def learn_index(request: Request):
