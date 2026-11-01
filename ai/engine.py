@@ -1,13 +1,15 @@
+"""CPUの着手選択と解析結果の取得。"""
+
 from math import inf
 from time import perf_counter
 
 from ai.models import SearchResult, SearchStats
 from ai.search import apply_move, minimax, order_moves
 from game import (
-    WHITE,
     BLACK,
-    EMPTY,
+    WHITE,
     DIRECTIONS,
+    EMPTY,
     Board,
     Position,
     get_flippable_stones,
@@ -38,11 +40,24 @@ def count_adjacent_empty_cells(
     return count
 
 
-def choose_cpu_move(
+def _resolve_depth(board: Board, depth: int | None) -> int:
+    """省略された探索深さを盤面の石数から決定する。"""
+    if depth is None:
+        stone_count = sum(cell != EMPTY for row in board for cell in row)
+        depth = 5 if stone_count > 48 else 4
+
+    if depth < 0:
+        raise ValueError("Depth must be non-negative")
+
+    return depth
+
+
+def _select_best_move(
     board: Board,
-    depth: int | None = None,
-) -> Position | None:
-    """Minimax探索によりCPU（白）の着手を選択する。"""
+    depth: int,
+    stats: SearchStats | None = None,
+) -> tuple[Position | None, int | None]:
+    """合法手を探索して、最善手と最終評価値を返す。"""
     moves = order_moves(
         board,
         get_valid_moves(board, WHITE),
@@ -50,106 +65,21 @@ def choose_cpu_move(
     )
 
     if not moves:
-        return None
-
-    stone_count = sum(cell != EMPTY for row in board for cell in row)
-
-    if depth is None:
-        depth = 5 if stone_count > 48 else 4
-
-    if depth < 0:
-        raise ValueError("Depth must be non-negative")
+        return None, None
 
     best_move = moves[0]
     best_score = -inf
 
     for y, x in moves:
+        # 既存CPUと同じペナルティを計算
         flippable = get_flippable_stones(board, y, x, WHITE)
 
         penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
 
+        # 元の盤面を変更せず着手後の盤面を生成
         next_board = apply_move(board, y, x, WHITE)
 
-        score = minimax(
-            next_board,
-            depth,
-            -inf,
-            inf,
-            1,  # BLACK
-        )
-
-        total_score = score - penalty * 2
-
-        if total_score > best_score:
-            best_score = total_score
-            best_move = (y, x)
-
-    return best_move
-
-
-def analyze_cpu_move(
-    board: Board,
-    depth: int | None = None,
-) -> SearchResult:
-    """CPUの着手選択と探索統計をまとめて返す。"""
-
-    # 既存のCPUと同じ探索深さの決定方法を使う
-    stone_count = sum(cell != EMPTY for row in board for cell in row)
-
-    if depth is None:
-        depth = 5 if stone_count > 48 else 4
-
-    # 不正な探索深さを検証する
-    if depth < 0:
-        raise ValueError("Depth must be non-negative")
-
-    # CPU（白）の合法手を取得し、既存と同じ順序で並べる
-    moves = order_moves(
-        board,
-        get_valid_moves(board, WHITE),
-        WHITE,
-    )
-
-    # 探索統計はすべての候補手で共有する
-    stats = SearchStats()
-
-    # CPUの処理時間を計測する
-    start = perf_counter()
-
-    if not moves:
-        return SearchResult(
-            best_move=None,
-            score=None,
-            depth=depth,
-            nodes_visited=0,
-            cutoffs=0,
-            elapsed_ms=(perf_counter() - start) * 1000,
-        )
-
-    best_move = moves[0]
-    best_score = -inf
-
-    for y, x in moves:
-        # 着手によって反転する石を取得
-        flippable = get_flippable_stones(
-            board,
-            y,
-            x,
-            WHITE,
-        )
-
-        # 既存CPUと同じペナルティを計算
-        penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
-
-        # 元の盤面を変更せず、着手後の盤面を作成
-        next_board = apply_move(
-            board,
-            y,
-            x,
-            WHITE,
-        )
-
-        # Minimax探索を実行し、統計を収集
+        # 統計が必要なときだけstatsを渡す
         score = minimax(
             next_board,
             depth,
@@ -159,18 +89,52 @@ def analyze_cpu_move(
             stats=stats,
         )
 
-        # 既存CPUと同じ最終評価値
         total_score = score - penalty * 2
 
-        # 同点では更新しないことで既存の選択順を維持
+        # 同点では更新しない（既存の挙動を維持）
         if total_score > best_score:
             best_score = total_score
             best_move = (y, x)
 
+    return best_move, int(best_score)
+
+
+def choose_cpu_move(
+    board: Board,
+    depth: int | None = None,
+) -> Position | None:
+    """通常対戦用。CPUの最善手だけを返す。"""
+    # 既存仕様：合法手がなければ深さの検証前にNoneを返す
+    if not get_valid_moves(board, WHITE):
+        return None
+
+    resolved_depth = _resolve_depth(board, depth)
+    best_move, _ = _select_best_move(
+        board,
+        resolved_depth,
+    )
+    return best_move
+
+
+def analyze_cpu_move(
+    board: Board,
+    depth: int | None = None,
+) -> SearchResult:
+    """解析用。着手・評価値・探索統計を返す。"""
+    start = perf_counter()
+    resolved_depth = _resolve_depth(board, depth)
+    stats = SearchStats()
+
+    best_move, score = _select_best_move(
+        board,
+        resolved_depth,
+        stats=stats,
+    )
+
     return SearchResult(
         best_move=best_move,
-        score=int(best_score),
-        depth=depth,
+        score=score,
+        depth=resolved_depth,
         nodes_visited=stats.nodes_visited,
         cutoffs=stats.cutoffs,
         elapsed_ms=(perf_counter() - start) * 1000,
