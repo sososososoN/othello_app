@@ -1,7 +1,7 @@
 from math import inf
 
+from ai.search import apply_move, minimax, order_moves
 from game import (
-    BLACK,
     WHITE,
     EMPTY,
     DIRECTIONS,
@@ -10,8 +10,6 @@ from game import (
     get_flippable_stones,
     get_valid_moves,
 )
-from ai.evaluation import WEIGHTS, WIN_SCORE, evaluate_board
-from ai.search import apply_move, minimax, order_moves
 
 DIFFICULTY_DEPTH: dict[str, int] = {
     "easy": 1,
@@ -25,11 +23,15 @@ def count_adjacent_empty_cells(
     y: int,
     x: int,
 ) -> int:
+    """指定したマスの周囲8方向にある空きマスを数える。"""
     count = 0
+
     for dy, dx in DIRECTIONS:
         ny, nx = y + dy, x + dx
+
         if 0 <= ny < 8 and 0 <= nx < 8 and board[ny][nx] == EMPTY:
             count += 1
+
     return count
 
 
@@ -37,6 +39,7 @@ def choose_cpu_move(
     board: Board,
     depth: int | None = None,
 ) -> Position | None:
+    """Minimax探索によりCPU（白）の着手を選択する。"""
     moves = order_moves(
         board,
         get_valid_moves(board, WHITE),
@@ -69,7 +72,7 @@ def choose_cpu_move(
             depth,
             -inf,
             inf,
-            BLACK,
+            1,  # BLACK
         )
 
         total_score = score - penalty * 2

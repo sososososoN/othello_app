@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
 from game import EMPTY, WHITE, Board, Position
-from cpu import DIFFICULTY_DEPTH, choose_cpu_move
+from ai.engine import DIFFICULTY_DEPTH, choose_cpu_move
 from storage import GameRecord
 
 CpuSelector = Callable[[Board], Position | None]
