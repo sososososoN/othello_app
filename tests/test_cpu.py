@@ -3,14 +3,9 @@ from math import inf
 import pytest
 
 from game import BLACK, WHITE, Game, create_board, get_valid_moves
-from cpu import (
-    apply_move,
-    choose_cpu_move,
-    minimax,
-    order_moves,
-)
+from cpu import choose_cpu_move
 from ai.evaluation import evaluate_board, WIN_SCORE, WEIGHTS
-
+from ai.search import apply_move, minimax, order_moves
 
 def test_apply_move() -> None:
     board = create_board()
