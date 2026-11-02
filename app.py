@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,8 +10,17 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from storage import GameRecord, SQLiteGameStore
 from service import GameError, GameService
-from schemas import MoveRequest, ModeRequest, DifficultyRequest, GameStateResponse
+from schemas import (
+    MoveRequest,
+    ModeRequest,
+    DifficultyRequest,
+    GameStateResponse,
+    AnalysisResponse,
+    MoveEvaluationResponse,
+)
 from learning.articles import get_article, list_articles, render_article
+from ai.engine import DIFFICULTY_DEPTH, analyze_cpu_move
+from game import WHITE
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -106,6 +116,51 @@ def create_cpu_move(request: Request) -> dict:
     with record.lock:
         service.play_cpu()
         return service.state()
+
+
+@app.get("/analysis", response_model=AnalysisResponse)
+def get_analysis(
+    request: Request,
+    depth: Annotated[
+        int | None,
+        Query(ge=0, le=5),
+    ] = None,
+) -> AnalysisResponse:
+    record = get_game(request)
+    with record.lock:
+        if record.mode != "pvc":
+            raise HTTPException(
+                status_code=409,
+                detail="Analysis requires PvC mode",
+            )
+        if record.game.turn != WHITE:
+            raise HTTPException(
+                status_code=409,
+                detail="It is not CPU's turn",
+            )
+        board = [row.copy() for row in record.game.board]
+        selected_depth = DIFFICULTY_DEPTH[record.difficulty] if depth is None else depth
+    result = analyze_cpu_move(
+        board,
+        depth=selected_depth,
+    )
+    return AnalysisResponse(
+        best_move=result.best_move,
+        score=result.score,
+        depth=result.depth,
+        nodes_visited=result.nodes_visited,
+        cutoffs=result.cutoffs,
+        elapsed_ms=result.elapsed_ms,
+        candidates=[
+            MoveEvaluationResponse(
+                move=candidate.move,
+                minimax_score=candidate.minimax_score,
+                penalty=candidate.penalty,
+                total_score=candidate.total_score,
+            )
+            for candidate in result.candidates
+        ],
+    )
 
 
 @app.patch("/mode", response_model=GameStateResponse)

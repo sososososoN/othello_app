@@ -48,3 +48,20 @@ class GameStateResponse(BaseModel):
     mode: GameMode
     difficulty: Difficulty
     valid_moves: list[ValidMove]
+
+
+class MoveEvaluationResponse(BaseModel):
+    move: ValidMove
+    minimax_score: int
+    penalty: int
+    total_score: int
+
+
+class AnalysisResponse(BaseModel):
+    best_move: ValidMove | None
+    score: int | None
+    depth: int
+    nodes_visited: int
+    cutoffs: int
+    elapsed_ms: float
+    candidates: list[MoveEvaluationResponse]
