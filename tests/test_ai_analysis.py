@@ -61,144 +61,71 @@ def test_analysis_rejects_negative_depth() -> None:
         analyze_cpu_move(create_board(), depth=-1)
 
 
-"""CPUの着手選択と解析結果の取得。"""
+def test_analysis_contains_all_legal_moves() -> None:
+    """すべての合法手が候補手一覧に含まれることを確認する。"""
+    from game import WHITE, get_valid_moves
 
-from math import inf
-from time import perf_counter
+    game = Game()
+    assert game.place(2, 3)
 
-from ai.models import SearchResult, SearchStats
-from ai.search import apply_move, minimax, order_moves
-from game import (
-    BLACK,
-    WHITE,
-    DIRECTIONS,
-    EMPTY,
-    Board,
-    Position,
-    get_flippable_stones,
-    get_valid_moves,
-)
+    result = analyze_cpu_move(game.board, depth=1)
 
-DIFFICULTY_DEPTH: dict[str, int] = {
-    "easy": 1,
-    "normal": 3,
-    "hard": 5,
-}
+    expected_moves = set(get_valid_moves(game.board, WHITE))
+    actual_moves = {item.move for item in result.candidates}
+
+    assert actual_moves == expected_moves
+    assert len(result.candidates) == len(expected_moves)
 
 
-def count_adjacent_empty_cells(
-    board: Board,
-    y: int,
-    x: int,
-) -> int:
-    """指定したマスの周囲8方向にある空きマスを数える。"""
-    count = 0
+def test_candidate_evaluation_consistency() -> None:
+    """各候補手の総合評価値が計算式と一致する。"""
+    game = Game()
+    assert game.place(2, 3)
 
-    for dy, dx in DIRECTIONS:
-        ny, nx = y + dy, x + dx
+    result = analyze_cpu_move(game.board, depth=2)
 
-        if 0 <= ny < 8 and 0 <= nx < 8 and board[ny][nx] == EMPTY:
-            count += 1
+    assert result.candidates
 
-    return count
-
-
-def _resolve_depth(board: Board, depth: int | None) -> int:
-    """省略された探索深さを盤面の石数から決定する。"""
-    if depth is None:
-        stone_count = sum(cell != EMPTY for row in board for cell in row)
-        depth = 5 if stone_count > 48 else 4
-
-    if depth < 0:
-        raise ValueError("Depth must be non-negative")
-
-    return depth
-
-
-def _select_best_move(
-    board: Board,
-    depth: int,
-    stats: SearchStats | None = None,
-) -> tuple[Position | None, int | None]:
-    """合法手を探索して、最善手と最終評価値を返す。"""
-    moves = order_moves(
-        board,
-        get_valid_moves(board, WHITE),
-        WHITE,
-    )
-
-    if not moves:
-        return None, None
-
-    best_move = moves[0]
-    best_score = -inf
-
-    for y, x in moves:
-        # 既存CPUと同じペナルティを計算
-        flippable = get_flippable_stones(board, y, x, WHITE)
-
-        penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
-
-        # 元の盤面を変更せず着手後の盤面を生成
-        next_board = apply_move(board, y, x, WHITE)
-
-        # 統計が必要なときだけstatsを渡す
-        score = minimax(
-            next_board,
-            depth,
-            -inf,
-            inf,
-            BLACK,
-            stats=stats,
+    for candidate in result.candidates:
+        assert candidate.total_score == (
+            candidate.minimax_score - candidate.penalty * 2
         )
 
-        total_score = score - penalty * 2
 
-        # 同点では更新しない（既存の挙動を維持）
-        if total_score > best_score:
-            best_score = total_score
-            best_move = (y, x)
+def test_best_move_has_highest_score() -> None:
+    """最善手が候補手の中で最大の総合評価値を持つ。"""
+    game = Game()
+    assert game.place(2, 3)
 
-    return best_move, int(best_score)
+    result = analyze_cpu_move(game.board, depth=2)
 
-
-def choose_cpu_move(
-    board: Board,
-    depth: int | None = None,
-) -> Position | None:
-    """通常対戦用。CPUの最善手だけを返す。"""
-    # 既存仕様：合法手がなければ深さの検証前にNoneを返す
-    if not get_valid_moves(board, WHITE):
-        return None
-
-    resolved_depth = _resolve_depth(board, depth)
-    best_move, _ = _select_best_move(
-        board,
-        resolved_depth,
-    )
-    return best_move
-
-
-def analyze_cpu_move(
-    board: Board,
-    depth: int | None = None,
-) -> SearchResult:
-    """解析用。着手・評価値・探索統計を返す。"""
-    start = perf_counter()
-    resolved_depth = _resolve_depth(board, depth)
-    stats = SearchStats()
-
-    best_move, score = _select_best_move(
-        board,
-        resolved_depth,
-        stats=stats,
+    best_candidate = max(
+        result.candidates,
+        key=lambda candidate: candidate.total_score,
     )
 
-    return SearchResult(
-        best_move=best_move,
-        score=score,
-        depth=resolved_depth,
-        nodes_visited=stats.nodes_visited,
-        cutoffs=stats.cutoffs,
-        elapsed_ms=(perf_counter() - start) * 1000,
-    )
+    assert result.best_move == best_candidate.move
+    assert result.score == best_candidate.total_score
+
+
+def test_no_legal_moves_has_no_candidates() -> None:
+    """合法手がなければ候補手一覧は空になる。"""
+    board = [[BLACK] * 8 for _ in range(8)]
+
+    result = analyze_cpu_move(board, depth=1)
+
+    assert result.best_move is None
+    assert result.candidates == ()
+
+
+def test_candidate_results_are_immutable() -> None:
+    """探索完了後に候補手の評価値を変更できない。"""
+    from dataclasses import FrozenInstanceError
+
+    game = Game()
+    assert game.place(2, 3)
+
+    result = analyze_cpu_move(game.board, depth=1)
+
+    with pytest.raises(FrozenInstanceError):
+        result.candidates[0].total_score = 999

@@ -1,9 +1,7 @@
-"""CPUの着手選択と解析結果の取得。"""
-
 from math import inf
 from time import perf_counter
 
-from ai.models import SearchResult, SearchStats
+from ai.models import MoveEvaluation, SearchResult, SearchStats
 from ai.search import apply_move, minimax, order_moves
 from game import (
     BLACK,
@@ -56,8 +54,10 @@ def _select_best_move(
     board: Board,
     depth: int,
     stats: SearchStats | None = None,
+    candidates: list[MoveEvaluation] | None = None,
 ) -> tuple[Position | None, int | None]:
-    """合法手を探索して、最善手と最終評価値を返す。"""
+    """最善手を選択し、必要に応じて候補手の解析情報を収集する。"""
+
     moves = order_moves(
         board,
         get_valid_moves(board, WHITE),
@@ -71,15 +71,12 @@ def _select_best_move(
     best_score = -inf
 
     for y, x in moves:
-        # 既存CPUと同じペナルティを計算
         flippable = get_flippable_stones(board, y, x, WHITE)
 
         penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
 
-        # 元の盤面を変更せず着手後の盤面を生成
         next_board = apply_move(board, y, x, WHITE)
 
-        # 統計が必要なときだけstatsを渡す
         score = minimax(
             next_board,
             depth,
@@ -91,7 +88,18 @@ def _select_best_move(
 
         total_score = score - penalty * 2
 
-        # 同点では更新しない（既存の挙動を維持）
+        # 解析時のみ候補手ごとの結果を保存する
+        if candidates is not None:
+            candidates.append(
+                MoveEvaluation(
+                    move=(y, x),
+                    minimax_score=score,
+                    penalty=penalty,
+                    total_score=total_score,
+                )
+            )
+
+        # 同点なら先に探索した候補を優先する
         if total_score > best_score:
             best_score = total_score
             best_move = (y, x)
@@ -120,15 +128,23 @@ def analyze_cpu_move(
     board: Board,
     depth: int | None = None,
 ) -> SearchResult:
-    """解析用。着手・評価値・探索統計を返す。"""
+    """最善手・探索統計・候補手ごとの評価結果を返す。"""
+
     start = perf_counter()
     resolved_depth = _resolve_depth(board, depth)
+
+    # 探索統計を記録するオブジェクト
     stats = SearchStats()
 
+    # 各候補手の評価結果を保存するリスト
+    candidates: list[MoveEvaluation] = []
+
+    # 同じリストを内部関数に渡して候補手を収集
     best_move, score = _select_best_move(
         board,
         resolved_depth,
         stats=stats,
+        candidates=candidates,
     )
 
     return SearchResult(
@@ -138,4 +154,5 @@ def analyze_cpu_move(
         nodes_visited=stats.nodes_visited,
         cutoffs=stats.cutoffs,
         elapsed_ms=(perf_counter() - start) * 1000,
+        candidates=tuple(candidates),
     )

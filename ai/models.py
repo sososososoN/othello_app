@@ -12,6 +12,16 @@ class SearchStats:
 
 
 @dataclass(frozen=True)
+class MoveEvaluation:
+    """CPUの候補手1つに対する評価結果。"""
+
+    move: Position
+    minimax_score: int
+    penalty: int
+    total_score: int
+
+
+@dataclass(frozen=True)
 class SearchResult:
     """CPUが実行した探索の結果。"""
 
@@ -21,3 +31,4 @@ class SearchResult:
     nodes_visited: int
     cutoffs: int
     elapsed_ms: float
+    candidates: tuple[MoveEvaluation, ...] = ()
