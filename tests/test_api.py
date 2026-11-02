@@ -257,3 +257,146 @@ def test_difficulty_requires_pvc_api(client) -> None:
     )
 
     assert response.status_code == 409
+
+
+def test_analysis_requires_pvc(client: TestClient) -> None:
+    """PvPモードでは解析を拒否する。"""
+    response = client.get("/analysis?depth=1")
+    assert response.status_code == 409
+
+
+def test_analysis_requires_cpu_turn(client: TestClient) -> None:
+    """PvCでも黒の手番では解析を拒否する。"""
+    response = client.patch(
+        "/mode",
+        json={"mode": "pvc"},
+    )
+    assert response.status_code == 200
+
+    response = client.get("/analysis?depth=1")
+    assert response.status_code == 409
+
+
+def test_analysis_returns_candidates(client: TestClient) -> None:
+    """白の手番で全候補手の評価結果を取得する。"""
+    assert (
+        client.patch(
+            "/mode",
+            json={"mode": "pvc"},
+        ).status_code
+        == 200
+    )
+
+    # /movesではCPUも動くので/playerを使用する
+    response = client.post(
+        "/moves/player",
+        json={"y": 2, "x": 3},
+    )
+    assert response.status_code == 200
+    assert response.json()["turn"] == 2
+
+    response = client.get("/analysis?depth=1")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["depth"] == 1
+    assert data["best_move"] is not None
+    assert data["nodes_visited"] > 0
+    assert len(data["candidates"]) == 3
+
+    # 候補手の集合が白の合法手と一致する
+    assert {tuple(item["move"]) for item in data["candidates"]} == {
+        (2, 2),
+        (2, 4),
+        (4, 2),
+    }
+
+    # 最善手が最大スコアの候補になっている
+    best = max(
+        data["candidates"],
+        key=lambda item: item["total_score"],
+    )
+    assert data["best_move"] == best["move"]
+    assert data["score"] == best["total_score"]
+
+    # 既存のCPU評価式を確認する
+    for item in data["candidates"]:
+        assert item["total_score"] == (item["minimax_score"] - item["penalty"] * 2)
+
+
+def test_analysis_depth_validation(client: TestClient) -> None:
+    """範囲外や整数でないdepthを422で拒否する。"""
+    for depth in ("-1", "6", "abc", "1.5"):
+        response = client.get(
+            "/analysis",
+            params={"depth": depth},
+        )
+        assert response.status_code == 422
+
+
+def test_analysis_uses_difficulty(client: TestClient) -> None:
+    """depth省略時は対局の難易度を使用する。"""
+    assert (
+        client.patch(
+            "/mode",
+            json={"mode": "pvc"},
+        ).status_code
+        == 200
+    )
+
+    assert (
+        client.patch(
+            "/difficulty",
+            json={"difficulty": "easy"},
+        ).status_code
+        == 200
+    )
+
+    assert (
+        client.post(
+            "/moves/player",
+            json={"y": 2, "x": 3},
+        ).status_code
+        == 200
+    )
+
+    response = client.get("/analysis")
+    assert response.status_code == 200
+    assert response.json()["depth"] == 1
+
+
+def test_analysis_preserves_state(client: TestClient) -> None:
+    """解析しても盤面・手番・対局設定は変更されない。"""
+    assert (
+        client.patch(
+            "/mode",
+            json={"mode": "pvc"},
+        ).status_code
+        == 200
+    )
+
+    assert (
+        client.post(
+            "/moves/player",
+            json={"y": 2, "x": 3},
+        ).status_code
+        == 200
+    )
+
+    before = client.get("/state").json()
+
+    assert client.get("/analysis?depth=1").status_code == 200
+
+    after = client.get("/state").json()
+    assert after == before
+
+
+def test_analysis_openapi_schema(client: TestClient) -> None:
+    """OpenAPIに解析APIの応答モデルが登録される。"""
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+
+    path = response.json()["paths"]["/analysis"]["get"]
+    schema = path["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert schema["$ref"].endswith("/AnalysisResponse")
