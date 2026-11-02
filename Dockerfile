@@ -9,8 +9,9 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py cpu.py game.py schemas.py service.py storage.py ./
-COPY static/ ./staic/
+COPY app.py game.py schemas.py service.py storage.py ./
+COPY ai/ ./ai/
+COPY static/ ./static/
 COPY templates/ ./templates/
 COPY learning/ ./learning/
 COPY content/ ./content/
