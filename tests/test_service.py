@@ -143,3 +143,62 @@ def test_reset_preserves_difficulty() -> None:
 
     assert service.state()["difficulty"] == "easy"
     assert service.state()["turn"] == BLACK
+
+
+def test_manual_cpu_turn_matches_automatic_cpu_turn() -> None:
+    """自動CPU着手と手動CPU着手が同じ盤面になる。"""
+
+    # CPUが必ず同じ合法手を選ぶよう固定する
+    selector = lambda board: (2, 2)
+
+    automatic = GameService(
+        GameRecord(mode="pvc"),
+        cpu_selector=selector,
+    )
+
+    manual = GameService(
+        GameRecord(mode="pvc"),
+        cpu_selector=selector,
+    )
+
+    # 自動方式：人間の着手とCPUの着手をまとめて実行
+    automatic.play(2, 3)
+
+    # 分離方式：人間の着手とCPUの着手を別々に実行
+    manual.play_human(2, 3)
+    manual.play_cpu()
+
+    # 両方式の対局状態が一致することを確認
+    assert automatic.state() == manual.state()
+
+
+def test_manual_cpu_turn_rejects_pvp() -> None:
+    """PvPモードではCPUを実行できない。"""
+    service = GameService(GameRecord(mode="pvp"))
+
+    with pytest.raises(GameError) as exc_info:
+        service.play_cpu()
+
+    assert exc_info.value.status_code == 409
+
+
+def test_cpu_error_rolls_back_game() -> None:
+    """不正なCPU着手が発生した場合、盤面を元に戻す。"""
+
+    # (0, 0)は初期局面付近では合法手ではない
+    service = GameService(
+        GameRecord(mode="pvc"),
+        cpu_selector=lambda board: (0, 0),
+    )
+
+    before = service.state()
+
+    with pytest.raises(
+        RuntimeError,
+        match="CPU selected an illegal move",
+    ):
+        # 人間の着手後にCPUが不正な手を返す
+        service.play(2, 3)
+
+    # 人間の着手も含めて元の状態に戻る
+    assert service.state() == before
