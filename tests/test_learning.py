@@ -37,7 +37,7 @@ def test_minimax_article(client: TestClient) -> None:
     assert response.status_code == 200
     assert "Minimax法とは？" in response.text
     assert 'id="minimax-result"' in response.text
-    assert "minimax-demo.js" in response.text
+    assert "minimax_demo.js" in response.text
 
 
 def test_unknown_article_returns_404(client: TestClient) -> None:
@@ -51,3 +51,24 @@ def test_existing_game_remains_available(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["turn"] == 1
+
+
+def test_minimax_demo_script_is_accessible(client: TestClient) -> None:
+    """教材で参照するJavaScriptが実際に配信されることを確認する。"""
+
+    # 学習ページを取得する
+    page = client.get("/learn/minimax")
+    assert page.status_code == 200
+
+    # HTMLが正しいJavaScriptを参照しているか確認する
+    script_path = "/static/js/minimax_demo.js"
+    assert script_path in page.text
+
+    # 参照先をHTTP経由で取得する
+    script = client.get(script_path)
+
+    # ファイル名が間違っていれば404になり、このテストが失敗する
+    assert script.status_code == 200
+
+    # 期待しているMinimaxデモの実装であることを確認する
+    assert "initializeMinimaxDemo" in script.text
