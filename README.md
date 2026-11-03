@@ -23,6 +23,18 @@ FastAPIとJavaScriptを使用して開発しています。通常のオセロ対
 
 今後、CPUの探索過程の可視化やアルゴリズム比較機能を追加する予定です。
 
+### CPU探索解析API
+
+- `GET /analysis` により、現在のCPUの手番を解析
+- 各合法手のMinimax評価値・ペナルティ・最終評価値を取得
+- 最善手、探索ノード数、αβ枝刈り回数、探索時間を取得
+- `depth` パラメータで探索深さを0〜5の範囲で指定可能
+- `depth` 省略時は現在のCPU難易度を使用
+- PvCモードかつCPUの手番で利用可能
+- 解析処理自体は対局状態を変更しない
+
+API仕様は `/docs` から確認できます。
+
 ## 技術スタック
 
 | 分野 | 技術 |
@@ -125,18 +137,23 @@ SQLiteのデータはDocker Volumeに永続化されます。
 
 ```text
 othello_app/
-├── app.py              # FastAPI
-├── game.py             # オセロのルール
-├── cpu.py              # CPUの探索アルゴリズム
-├── service.py          # ゲーム操作
-├── storage.py          # SQLiteによる状態管理
-├── schemas.py          # APIスキーマ
-├── learning/           # 学習記事の管理
-├── content/algorithms/ # Markdown形式の学習記事
-├── templates/          # HTMLテンプレート
-├── static/             # CSS・JavaScript
-├── tests/              # Pythonテスト
-├── test_js/            # JavaScriptテスト
+├── ai/
+│   ├── __init__.py
+│   ├── engine.py          # CPUの着手選択・解析
+│   ├── evaluation.py      # 局面評価関数
+│   ├── models.py          # 探索結果・統計のデータ型
+│   └── search.py          # Minimax・αβ枝刈り
+├── app.py                 # FastAPIエンドポイント
+├── game.py                # オセロのルール・盤面管理
+├── service.py             # 対局操作・状態遷移
+├── storage.py             # 対局の永続化
+├── schemas.py             # API入出力スキーマ
+├── learning/              # 学習記事の管理
+├── content/algorithms/    # Markdown形式の学習記事
+├── templates/             # HTMLテンプレート
+├── static/                # CSS・JavaScript
+├── tests/                 # Pythonテスト
+├── test_js/               # JavaScriptテスト
 ├── Dockerfile
 ├── compose.yaml
 └── requirements.txt
@@ -166,12 +183,12 @@ GitHub ActionsでCIを実行しています。
 
 ## 今後の予定
 
-- AI探索エンジンのモジュール分割
 - CPUの候補手・評価値・探索ノード数の可視化
 - Minimax法・αβ枝刈りなどの学習コラム拡充
 - 探索木のインタラクティブな可視化
 - アルゴリズム比較・実験機能
 - 本番環境へのデプロイ
+- AI探索エンジンのモジュール分割
 
 ## 注意事項
 

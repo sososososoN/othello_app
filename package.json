@@ -2,7 +2,6 @@
   "name": "othello",
   "version": "1.0.0",
   "description": "FastAPIとJavaScriptで開発したWeb版オセロゲーム",
-  "main": "index.js",
   "directories": {
     "test": "tests"
   },
@@ -15,15 +14,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sososososoN/---_app.git"
+    "url": "git+https://github.com/sososososoN/othello_app.git"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sososososoN/---_app/issues"
+    "url": "https://github.com/sososososoN/othello_app/issues"
   },
-  "homepage": "https://github.com/sososososoN/---_app#readme",
+  "homepage": "https://github.com/sososososoN/othello_app#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",
