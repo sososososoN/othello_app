@@ -56,9 +56,10 @@ class GameStore:
             return len(self._records)
 
 
-class SQLiteGameStore(GameStore):
+class SQLiteGameStore:
     def __init__(self, db_path: str | Path) -> None:
-        super().__init__()
+        self._records: dict[str, GameRecord] = {}
+        self._lock = RLock()
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(
             parents=True,
@@ -153,18 +154,16 @@ class SQLiteGameStore(GameStore):
 
     def create(self) -> tuple[str, GameRecord]:
         with self._lock:
-            game_id, record = super().create()
+            game_id = uuid4().hex
+            record = GameRecord()
             self._bind(game_id, record)
-            try:
-                record.persist()
-            except Exception:
-                super().delete(game_id)
-                raise
+            record.persist()
+            self._records[game_id] = record
             return game_id, record
 
     def get(self, game_id: str) -> GameRecord | None:
         with self._lock:
-            cached = super().get(game_id)
+            cached = self._records.get(game_id)
             if cached is not None:
                 return cached
             with self._connection() as connection:
@@ -199,10 +198,9 @@ class SQLiteGameStore(GameStore):
                     "DELETE FROM games WHERE game_id = ?",
                     (game_id,),
                 )
-            if cursor.rowcount == 0:
-                return False
+
             self._records.pop(game_id, None)
-            return True
+            return cursor.rowcount > 0
 
     def count(self) -> int:
         with self._lock:
