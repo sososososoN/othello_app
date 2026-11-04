@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
-from game import EMPTY, WHITE, Board, Position
+from game import EMPTY, WHITE, Board, Game, Position
 from ai.engine import DIFFICULTY_DEPTH, choose_cpu_move
 from storage import GameRecord
 
@@ -89,6 +89,17 @@ class GameService:
 
             self.record.difficulty = difficulty
 
+    def _play_cpu_turn(self, game: Game) -> None:
+        if self.cpu_selector is not None:
+            move = self.cpu_selector(game.board)
+        else:
+            depth = DIFFICULTY_DEPTH[self.record.difficulty]
+            move = choose_cpu_move(game.board, depth=depth)
+        if move is None:
+            raise RuntimeError("CPU has no valid move")
+        if not game.place(*move):
+            raise RuntimeError("CPU selected an illegal move")
+
     def play(self, y: int, x: int) -> None:
         with self._update():
             game = self.record.game
@@ -100,15 +111,7 @@ class GameService:
                 raise GameError("Illegal move", 400)
             if self.record.mode == "pvc":
                 while game.turn == WHITE:
-                    if self.cpu_selector is not None:
-                        move = self.cpu_selector(game.board)
-                    else:
-                        depth = DIFFICULTY_DEPTH[self.record.difficulty]
-                        move = choose_cpu_move(game.board, depth=depth)
-                    if move is None:
-                        raise RuntimeError("CPU has no valid move")
-                    if not game.place(*move):
-                        raise RuntimeError("CPU selected an illegal move")
+                    self._play_cpu_turn(game)
 
     def play_human(self, y: int, x: int) -> None:
         with self._update():
@@ -134,17 +137,7 @@ class GameService:
                 raise GameError("It is not CPU's turn", 409)
 
             while game.turn == WHITE:
-                if self.cpu_selector is not None:
-                    move = self.cpu_selector(game.board)
-                else:
-                    depth = DIFFICULTY_DEPTH[self.record.difficulty]
-                    move = choose_cpu_move(game.board, depth=depth)
-
-                if move is None:
-                    raise RuntimeError("CPU has no valid move")
-
-                if not game.place(*move):
-                    raise RuntimeError("CPU selected an illegal move")
+                self._play_cpu_turn(game)
 
     def reset(self) -> None:
         with self._update():
