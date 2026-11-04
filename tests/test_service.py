@@ -1,6 +1,6 @@
 import pytest
 
-from game import BLACK, WHITE, Game
+from game import BLACK, WHITE, Game, Board, Position
 from service import GameError, GameService
 from storage import GameRecord
 
@@ -149,7 +149,8 @@ def test_manual_cpu_turn_matches_automatic_cpu_turn() -> None:
     """自動CPU着手と手動CPU着手が同じ盤面になる。"""
 
     # CPUが必ず同じ合法手を選ぶよう固定する
-    selector = lambda board: (2, 2)
+    def selector(board: Board) -> Position:
+        return (2, 2)
 
     automatic = GameService(
         GameRecord(mode="pvc"),
