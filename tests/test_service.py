@@ -203,3 +203,45 @@ def test_cpu_error_rolls_back_game() -> None:
 
     # 人間の着手も含めて元の状態に戻る
     assert service.state() == before
+
+
+def test_play_returns_updated_snapshot() -> None:
+    """更新メソッドの戻り値に着手後の状態が含まれる。"""
+    service = GameService(GameRecord())
+
+    state = service.play(2, 3)
+
+    assert state["board"][2][3] == BLACK
+    assert state["turn"] == WHITE
+
+    # 戻り値を変更しても実際の対局には影響しない
+    state["board"][2][3] = 0
+    assert service.state()["board"][2][3] == BLACK
+
+
+def test_change_mode_same_value_returns_state() -> None:
+    """同じモードを指定しても正しい状態を返す。"""
+    service = GameService(GameRecord())
+
+    state = service.change_mode("pvp")
+
+    assert state["mode"] == "pvp"
+    assert state == service.state()
+
+
+def test_persist_failure_does_not_return_success() -> None:
+    """保存失敗時は例外を送出して状態を元に戻す。"""
+    record = GameRecord()
+
+    def fail_persist() -> None:
+        raise OSError("Database write failed")
+
+    # 保存先の障害を再現
+    record.save_callback = fail_persist
+    service = GameService(record)
+    before = service.state()
+
+    with pytest.raises(OSError, match="Database write failed"):
+        service.play(2, 3)
+
+    assert service.state() == before

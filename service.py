@@ -42,31 +42,36 @@ class GameService:
                 self.record.difficulty = original_difficulty
                 raise
 
+    def _snapshot_unlocked(self) -> dict:
+        game = self.record.game
+        return {
+            "board": [row.copy() for row in game.board],
+            "turn": game.turn,
+            "message": game.message,
+            "mode": self.record.mode,
+            "difficulty": self.record.difficulty,
+            "valid_moves": [[y, x] for y, x in game.valid_moves()],
+        }
+
     def state(self) -> dict:
         with self.record.lock:
             game = self.record.game
-            return {
-                "board": [row.copy() for row in game.board],
-                "turn": game.turn,
-                "message": game.message,
-                "mode": self.record.mode,
-                "difficulty": self.record.difficulty,
-                "valid_moves": [[y, x] for y, x in game.valid_moves()],
-            }
+            return self._snapshot_unlocked()
 
-    def change_mode(self, mode: str) -> None:
+    def change_mode(self, mode: str) -> dict:
         if mode not in ("pvp", "pvc"):
             raise GameError("Invalid game mode", 400)
         with self._update():
             if mode == self.record.mode:
-                return
+                return self._snapshot_unlocked()
             game = self.record.game
             stone_count = sum(cell != EMPTY for row in game.board for cell in row)
             if stone_count > 4 or game.turn == EMPTY:
                 raise GameError("Reset before changing mode", 409)
             self.record.mode = mode
+            return self._snapshot_unlocked()
 
-    def change_difficulty(self, difficulty: str) -> None:
+    def change_difficulty(self, difficulty: str) -> dict:
         if difficulty not in DIFFICULTY_DEPTH:
             raise GameError("Invalid difficulty", 400)
 
@@ -88,6 +93,7 @@ class GameService:
                 )
 
             self.record.difficulty = difficulty
+            return self._snapshot_unlocked()
 
     def _play_cpu_turn(self, game: Game) -> None:
         if self.cpu_selector is not None:
@@ -100,7 +106,7 @@ class GameService:
         if not game.place(*move):
             raise RuntimeError("CPU selected an illegal move")
 
-    def play(self, y: int, x: int) -> None:
+    def play(self, y: int, x: int) -> dict:
         with self._update():
             game = self.record.game
             if game.turn == EMPTY:
@@ -112,8 +118,9 @@ class GameService:
             if self.record.mode == "pvc":
                 while game.turn == WHITE:
                     self._play_cpu_turn(game)
+            return self._snapshot_unlocked()
 
-    def play_human(self, y: int, x: int) -> None:
+    def play_human(self, y: int, x: int) -> dict:
         with self._update():
             game = self.record.game
 
@@ -125,8 +132,9 @@ class GameService:
 
             if not game.place(y, x):
                 raise GameError("Illegal move", 400)
+            return self._snapshot_unlocked()
 
-    def play_cpu(self) -> None:
+    def play_cpu(self) -> dict:
         with self._update():
             game = self.record.game
 
@@ -138,7 +146,9 @@ class GameService:
 
             while game.turn == WHITE:
                 self._play_cpu_turn(game)
+            return self._snapshot_unlocked()
 
-    def reset(self) -> None:
+    def reset(self) -> dict:
         with self._update():
             self.record.game.reset()
+            return self._snapshot_unlocked()
