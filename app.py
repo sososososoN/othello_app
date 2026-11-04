@@ -88,11 +88,8 @@ def get_state(request: Request):
 
 @app.post("/moves", response_model=GameStateResponse)
 def create_move(request: Request, data: MoveRequest):
-    record = get_game(request)
-    service = GameService(record)
-    with record.lock:
-        service.play(data.y, data.x)
-        return service.state()
+    service = GameService(get_game(request))
+    return service.play(data.y, data.x)
 
 
 @app.post("/moves/player", response_model=GameStateResponse)
@@ -100,22 +97,14 @@ def create_player_move(
     request: Request,
     data: MoveRequest,
 ) -> dict:
-    record = get_game(request)
-    service = GameService(record)
-
-    with record.lock:
-        service.play_human(data.y, data.x)
-        return service.state()
+    service = GameService(get_game(request))
+    return service.play_human(data.y, data.x)
 
 
 @app.post("/moves/cpu", response_model=GameStateResponse)
 def create_cpu_move(request: Request) -> dict:
-    record = get_game(request)
-    service = GameService(record)
-
-    with record.lock:
-        service.play_cpu()
-        return service.state()
+    service = GameService(get_game(request))
+    return service.play_cpu()
 
 
 @app.get("/analysis", response_model=AnalysisResponse)
@@ -165,11 +154,8 @@ def get_analysis(
 
 @app.patch("/mode", response_model=GameStateResponse)
 def update_mode(request: Request, data: ModeRequest):
-    record = get_game(request)
-    service = GameService(record)
-    with record.lock:
-        service.change_mode(data.mode)
-        return service.state()
+    service = GameService(get_game(request))
+    return service.change_mode(data.mode)
 
 
 @app.patch(
@@ -180,21 +166,14 @@ def update_difficulty(
     request: Request,
     data: DifficultyRequest,
 ):
-    record = get_game(request)
-    service = GameService(record)
-
-    with record.lock:
-        service.change_difficulty(data.difficulty)
-        return service.state()
+    service = GameService(get_game(request))
+    return service.change_difficulty(data.difficulty)
 
 
 @app.post("/reset", response_model=GameStateResponse)
 def handle_reset(request: Request):
-    record = get_game(request)
-    service = GameService(record)
-    with record.lock:
-        service.reset()
-        return service.state()
+    service = GameService(get_game(request))
+    return service.reset()
 
 
 @app.get("/learn", response_class=HTMLResponse)
