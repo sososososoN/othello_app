@@ -55,7 +55,6 @@ class GameService:
 
     def state(self) -> dict:
         with self.record.lock:
-            game = self.record.game
             return self._snapshot_unlocked()
 
     def change_mode(self, mode: str) -> dict:
