@@ -211,3 +211,52 @@ def test_existing_database_migrates_without_data_loss(
     assert restored is not None
     assert restored.difficulty == "normal"
     assert restarted.count() == 1
+
+
+def test_sqlite_store_is_independent_of_memory_store(db_path) -> None:
+    """SQLiteストアがメモリストアを継承していないことを確認する。"""
+    from storage import GameStore
+
+    store = SQLiteGameStore(db_path)
+
+    assert not isinstance(store, GameStore)
+
+
+def test_create_persists_before_cache_registration(
+    db_path,
+    monkeypatch,
+) -> None:
+    """SQLite保存が失敗した対局はキャッシュに残さない。"""
+    store = SQLiteGameStore(db_path)
+
+    def failing_save(game_id, record) -> None:
+        raise sqlite3.OperationalError("Simulated failure")
+
+    monkeypatch.setattr(store, "_save", failing_save)
+
+    with pytest.raises(sqlite3.OperationalError):
+        store.create()
+
+    assert store._records == {}
+    assert store.count() == 0
+
+
+def test_sqlite_store_reuses_cached_record(db_path) -> None:
+    """同じ対局IDでは既存のレコードを再利用する。"""
+    store = SQLiteGameStore(db_path)
+
+    game_id, record = store.create()
+
+    assert store.get(game_id) is record
+    assert store.get(game_id) is record
+
+
+def test_delete_clears_cached_record(db_path) -> None:
+    """SQLiteから削除した対局はキャッシュからも消える。"""
+    store = SQLiteGameStore(db_path)
+
+    game_id, _ = store.create()
+
+    assert store.delete(game_id) is True
+    assert store.get(game_id) is None
+    assert game_id not in store._records
