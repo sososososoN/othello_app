@@ -11,11 +11,16 @@ from uuid import uuid4
 from game import Game
 
 
+class ConcurrentUpdateError(RuntimeError):
+    """同じ対局を複数のプロセスが同時に更新しようとした場合に発生する例外。"""
+
+
 @dataclass
 class GameRecord:
     game: Game = field(default_factory=Game)
     mode: str = "pvp"
     difficulty: str = "normal"
+    version: int = 0
     lock: RLock = field(default_factory=RLock)
     save_callback: Callable[[], None] | None = field(
         default=None,
@@ -93,7 +98,8 @@ class SQLiteGameStore:
                     mode TEXT NOT NULL,
                     message TEXT NOT NULL,
                     difficulty TEXT NOT NULL DEFAULT 'normal'
-                        CHECK (difficulty IN ('easy', 'normal', 'hard'))
+                        CHECK (difficulty IN ('easy', 'normal', 'hard')),
+                    version INTEGER NOT NULL DEFAULT 0
                 )
                 """
             )
@@ -110,6 +116,14 @@ class SQLiteGameStore:
                     ADD COLUMN difficulty TEXT NOT NULL
                     DEFAULT 'normal'
                     CHECK (difficulty IN ('easy', 'normal', 'hard'))
+                    """
+                )
+
+            if "version" not in columns:
+                connection.execute(
+                    """
+                    ALTER TABLE games
+                    ADD COLUMN version INTEGER NOT NULL DEFAULT 0
                     """
                 )
 
@@ -130,13 +144,23 @@ class SQLiteGameStore:
                         turn = ?,
                         mode = ?,
                         message = ?,
-                        difficulty = ?
-                    WHERE game_id = ?
+                        difficulty = ?,
+                        version = version + 1
+                    WHERE game_id = ? AND version = ?
                     """,
-                    (*self._record_values(record), game_id),
+                    (*self._record_values(record), game_id, record.version),
                 )
                 if cursor.rowcount != 1:
-                    raise LookupError(f"Game not found {game_id}")
+                    exists = connection.execute(
+                        "SELECT 1 FROM games WHERE game_id = ?",
+                        (game_id,),
+                    ).fetchone()
+                    if exists is None:
+                        raise LookupError(f"Game not found {game_id}")
+                    raise ConcurrentUpdateError(
+                        f"Game was updated concurrently: {game_id}"
+                    )
+            record.version += 1
 
     def _insert(self, game_id: str, record: GameRecord) -> None:
         with self._lock:
@@ -168,7 +192,7 @@ class SQLiteGameStore:
             with self._connection() as connection:
                 row = connection.execute(
                     """
-                    SELECT board, turn, mode, message, difficulty
+                    SELECT board, turn, mode, message, difficulty, version
                     FROM games
                     WHERE game_id = ?
                     """,
@@ -176,7 +200,7 @@ class SQLiteGameStore:
                 ).fetchone()
             if row is None:
                 return None
-            board, turn, mode, message, difficulty = row
+            board, turn, mode, message, difficulty, version = row
             record = GameRecord(
                 game=Game(
                     board=json.loads(board),
@@ -185,6 +209,7 @@ class SQLiteGameStore:
                 ),
                 mode=mode,
                 difficulty=difficulty,
+                version=version,
             )
             self._bind(game_id, record)
             self._records[game_id] = record

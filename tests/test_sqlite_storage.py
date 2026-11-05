@@ -4,7 +4,7 @@ import pytest
 
 from game import BLACK, WHITE
 from service import GameService
-from storage import SQLiteGameStore, GameRecord
+from storage import SQLiteGameStore, GameRecord, ConcurrentUpdateError
 
 
 @pytest.fixture
@@ -312,3 +312,75 @@ def test_deleted_game_service_update_is_rolled_back(db_path) -> None:
     # GameService._update() がロールバックする
     assert service.state() == before
     assert store.count() == 0
+
+
+def test_version_increments_after_update(db_path) -> None:
+    """保存に成功するたびにバージョンが増加する。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    assert record.version == 0
+
+    GameService(record).play(2, 3)
+
+    assert record.version == 1
+
+    restored = SQLiteGameStore(db_path).get(game_id)
+    assert restored is not None
+    assert restored.version == 1
+
+
+def test_stale_update_is_rejected(db_path) -> None:
+    """異なるストアの古いレコードで上書きできない。"""
+    store_a = SQLiteGameStore(db_path)
+    game_id, record_a = store_a.create()
+
+    # 別プロセスを模して、別のストアで同じ対局を取得
+    store_b = SQLiteGameStore(db_path)
+    record_b = store_b.get(game_id)
+    assert record_b is not None
+
+    # Aが先に着手して保存
+    GameService(record_a).play(2, 3)
+
+    # Bは古いversion=0を保持している
+    before = GameService(record_b).state()
+
+    # Bの更新は競合として拒否される
+    with pytest.raises(ConcurrentUpdateError):
+        GameService(record_b).play(3, 2)
+
+    # Bのメモリ状態は元に戻る
+    assert GameService(record_b).state() == before
+
+    # DBにはAの着手が残る
+    current = SQLiteGameStore(db_path).get(game_id)
+    assert current is not None
+    assert current.game.board[2][3] == BLACK
+    assert current.version == 1
+
+
+def test_version_migration_preserves_games(db_path) -> None:
+    """version列を持たない既存DBを移行できる。"""
+    store = SQLiteGameStore(db_path)
+    game_id, _ = store.create()
+
+    # 古いスキーマを再現
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE games_old AS
+            SELECT game_id, board, turn, mode, message, difficulty
+            FROM games
+            """
+        )
+        connection.execute("DROP TABLE games")
+        connection.execute("ALTER TABLE games_old RENAME TO games")
+
+    # 起動時にversion列が自動追加される
+    migrated = SQLiteGameStore(db_path)
+    restored = migrated.get(game_id)
+
+    assert restored is not None
+    assert restored.version == 0
+    assert migrated.count() == 1
