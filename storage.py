@@ -120,44 +120,43 @@ class SQLiteGameStore:
         )
 
     def _save(self, game_id: str, record: GameRecord) -> None:
-        game = record.game
+        with self._lock:
+            with self._connection() as connection:
+                cursor = connection.execute(
+                    """
+                    UPDATE games 
+                    SET
+                        board = ?,
+                        turn = ?,
+                        mode = ?,
+                        message = ?,
+                        difficulty = ?
+                    WHERE game_id = ?
+                    """,
+                    (*self._record_values(record), game_id),
+                )
+                if cursor.rowcount != 1:
+                    raise LookupError(f"Game not found {game_id}")
+
+    def _insert(self, game_id: str, record: GameRecord) -> None:
         with self._lock:
             with self._connection() as connection:
                 connection.execute(
                     """
                     INSERT INTO games (
-                        game_id,
-                        board,
-                        turn,
-                        mode,
-                        message,
-                        difficulty
+                        game_id, board, turn, mode, message, difficulty
                     )
                     VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT (game_id)
-                    DO UPDATE SET
-                        board = excluded.board,
-                        turn = excluded.turn,
-                        mode = excluded.mode,
-                        message = excluded.message,
-                        difficulty = excluded.difficulty
                     """,
-                    (
-                        game_id,
-                        json.dumps(game.board),
-                        game.turn,
-                        record.mode,
-                        game.message,
-                        record.difficulty,
-                    ),
+                    (game_id, *self._record_values(record)),
                 )
 
     def create(self) -> tuple[str, GameRecord]:
         with self._lock:
             game_id = uuid4().hex
             record = GameRecord()
+            self._insert(game_id, record)
             self._bind(game_id, record)
-            record.persist()
             self._records[game_id] = record
             return game_id, record
 
@@ -207,3 +206,14 @@ class SQLiteGameStore:
             with self._connection() as connection:
                 row = connection.execute("SELECT COUNT(*) FROM games").fetchone()
             return row[0]
+
+    @staticmethod
+    def _record_values(record: GameRecord) -> tuple[str, int, str, str, str]:
+        game = record.game
+        return (
+            json.dumps(game.board),
+            game.turn,
+            record.mode,
+            game.message,
+            record.difficulty,
+        )
