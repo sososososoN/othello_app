@@ -4,7 +4,7 @@ import pytest
 
 from game import BLACK, WHITE
 from service import GameService
-from storage import SQLiteGameStore
+from storage import SQLiteGameStore, GameRecord
 
 
 @pytest.fixture
@@ -229,10 +229,10 @@ def test_create_persists_before_cache_registration(
     """SQLite保存が失敗した対局はキャッシュに残さない。"""
     store = SQLiteGameStore(db_path)
 
-    def failing_save(game_id, record) -> None:
+    def failing_insert(game_id: str, record: GameRecord) -> None:
         raise sqlite3.OperationalError("Simulated failure")
 
-    monkeypatch.setattr(store, "_save", failing_save)
+    monkeypatch.setattr(store, "_insert", failing_insert)
 
     with pytest.raises(sqlite3.OperationalError):
         store.create()
@@ -260,3 +260,55 @@ def test_delete_clears_cached_record(db_path) -> None:
     assert store.delete(game_id) is True
     assert store.get(game_id) is None
     assert game_id not in store._records
+
+
+def test_deleted_game_cannot_be_resurrected(db_path) -> None:
+    """削除済み対局を保存しても復活しない。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    # データベースから対局を削除
+    assert store.delete(game_id) is True
+
+    # 古いGameRecord参照から保存を試みる
+    with pytest.raises(LookupError, match="Game not found"):
+        record.persist()
+
+    # 保存を試みた後も削除状態が維持される
+    assert store.get(game_id) is None
+    assert store.count() == 0
+
+
+def test_existing_game_can_still_be_updated(db_path) -> None:
+    """既存の対局はUPDATEによって正常に保存される。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    # GameServiceの既存の永続化処理を利用
+    service = GameService(record)
+    service.play(2, 3)
+
+    # 別のストアインスタンスからDBを読み直す
+    restored = SQLiteGameStore(db_path).get(game_id)
+
+    assert restored is not None
+    assert restored.game.board[2][3] == BLACK
+    assert restored.game.turn == WHITE
+
+
+def test_deleted_game_service_update_is_rolled_back(db_path) -> None:
+    """削除済み対局への操作は失敗し、メモリ状態も復元される。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+    service = GameService(record)
+
+    before = service.state()
+    assert store.delete(game_id) is True
+
+    # メモリ上の着手に成功しても、DB保存に失敗する
+    with pytest.raises(LookupError, match="Game not found"):
+        service.play(2, 3)
+
+    # GameService._update() がロールバックする
+    assert service.state() == before
+    assert store.count() == 0
