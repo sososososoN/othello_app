@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
 from uuid import uuid4
-
+from weakref import WeakValueDictionary
 from game import Game
 
 
@@ -63,7 +63,7 @@ class GameStore:
 
 class SQLiteGameStore:
     def __init__(self, db_path: str | Path) -> None:
-        self._records: dict[str, GameRecord] = {}
+        self._records: WeakValueDictionary[str, GameRecord] = WeakValueDictionary()
         self._lock = RLock()
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(
