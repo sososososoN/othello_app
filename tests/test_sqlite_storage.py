@@ -2,6 +2,10 @@ import sqlite3
 
 import pytest
 
+import gc
+import weakref
+from weakref import WeakValueDictionary
+
 from game import BLACK, WHITE
 from service import GameService
 from storage import SQLiteGameStore, GameRecord, ConcurrentUpdateError
@@ -412,3 +416,50 @@ def test_conflict_evicts_stale_cached_record(db_path) -> None:
     assert refreshed is not record_a
     assert refreshed.game.board[2][3] == BLACK
     assert refreshed.version == 1
+
+
+def test_sqlite_cache_uses_weak_references(db_path) -> None:
+    """SQLiteストアが弱参照キャッシュを使うことを確認する。"""
+    store = SQLiteGameStore(db_path)
+
+    assert isinstance(store._records, WeakValueDictionary)
+
+
+def test_unused_record_can_be_collected(db_path) -> None:
+    """使用されなくなったレコードはキャッシュから消える。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    # 弱参照を作成する。これ自体は寿命を延ばさない
+    reference = weakref.ref(record)
+
+    # 通常の強参照を削除する
+    del record
+
+    # ガベージコレクションを明示的に実行
+    gc.collect()
+
+    assert reference() is None
+    assert game_id not in store._records
+
+    # メモリから消えてもSQLiteには残っている
+    restored = store.get(game_id)
+    assert restored is not None
+    assert store.count() == 1
+
+
+def test_active_record_keeps_same_identity(db_path) -> None:
+    """使用中のレコードは同じインスタンスを返す。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    # 強参照があるので、GCしても生存する
+    gc.collect()
+
+    assert store.get(game_id) is record
+
+    # 操作結果も同じレコードに反映される
+    GameService(record).play(2, 3)
+
+    assert store.get(game_id) is record
+    assert record.version == 1
