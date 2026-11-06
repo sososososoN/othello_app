@@ -5,6 +5,8 @@ import pytest
 import gc
 import weakref
 from weakref import WeakValueDictionary
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from threading import Event
 
 from game import BLACK, WHITE
 from service import GameService
@@ -520,3 +522,65 @@ def test_get_preserves_identity_for_unchanged_version(db_path) -> None:
 
     assert store.get(game_id) is record
     assert store.get(game_id) is record
+
+
+def test_read_waits_for_pending_update(db_path) -> None:
+    """更新中のGameRecordから未確定の盤面を読み取らない。"""
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    service = GameService(record)
+
+    # スレッド間の処理順序を制御するイベント
+    update_started = Event()
+    allow_commit = Event()
+    reader_ready = Event()
+
+    def writer() -> None:
+        # GameServiceの更新ロックを取得する
+        with service._update():
+            assert record.game.place(2, 3)
+
+            # 盤面は変更されたがSQLiteには未保存
+            update_started.set()
+
+            # テスト側が許可するまで保存処理を止める
+            if not allow_commit.wait(timeout=5):
+                raise TimeoutError("Writer timed out")
+
+    def reader() -> dict:
+        # 更新中のレコードを取得する
+        current = store.get(game_id)
+        assert current is record
+
+        reader_ready.set()
+
+        # state()はrecord.lockの解放を待つ必要がある
+        return GameService(current).state()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        writer_future = executor.submit(writer)
+
+        try:
+            # 更新が開始されたことを確認
+            assert update_started.wait(timeout=5)
+
+            reader_future = executor.submit(reader)
+            assert reader_ready.wait(timeout=5)
+
+            # Writerがロック保持中はstate()が完了しない
+            with pytest.raises(FutureTimeoutError):
+                reader_future.result(timeout=0.1)
+
+        finally:
+            # 失敗時にもWriterを解放する
+            allow_commit.set()
+
+        # 両スレッドが正常終了することを確認
+        writer_future.result(timeout=5)
+        state = reader_future.result(timeout=5)
+
+    # 読み取った状態には確定した着手が反映される
+    assert state["board"][2][3] == BLACK
+    assert state["turn"] == WHITE
+    assert record.version == 1
