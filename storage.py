@@ -189,8 +189,6 @@ class SQLiteGameStore:
     def get(self, game_id: str) -> GameRecord | None:
         with self._lock:
             cached = self._records.get(game_id)
-            if cached is not None:
-                return cached
             with self._connection() as connection:
                 row = connection.execute(
                     """
@@ -201,8 +199,11 @@ class SQLiteGameStore:
                     (game_id,),
                 ).fetchone()
             if row is None:
+                self._records.pop(game_id, None)
                 return None
             board, turn, mode, message, difficulty, version = row
+            if cached is not None and cached.version == version:
+                return cached
             record = GameRecord(
                 game=Game(
                     board=json.loads(board),

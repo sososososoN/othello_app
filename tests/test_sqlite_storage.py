@@ -463,3 +463,60 @@ def test_active_record_keeps_same_identity(db_path) -> None:
 
     assert store.get(game_id) is record
     assert record.version == 1
+
+
+def test_get_refreshes_stale_cache(db_path) -> None:
+    """別ストアの更新を次のget()で検出できる。"""
+
+    store_a = SQLiteGameStore(db_path)
+    game_id, record_a = store_a.create()
+
+    # 別ワーカーを模したストア
+    store_b = SQLiteGameStore(db_path)
+    record_b = store_b.get(game_id)
+    assert record_b is not None
+
+    # Bが対局を更新
+    GameService(record_b).play(2, 3)
+
+    # Aにはまだ古いレコードへの強参照がある
+    assert record_a.version == 0
+
+    # Aが再取得すると、SQLiteの新しい状態を返す
+    refreshed = store_a.get(game_id)
+
+    assert refreshed is not None
+    assert refreshed is not record_a
+    assert refreshed.version == 1
+    assert refreshed.game.board[2][3] == BLACK
+
+    # 再取得後は同じインスタンスを再利用
+    assert store_a.get(game_id) is refreshed
+
+
+def test_get_detects_external_deletion(db_path) -> None:
+    """別ストアから削除された対局を返さない。"""
+
+    store_a = SQLiteGameStore(db_path)
+    game_id, record_a = store_a.create()
+
+    store_b = SQLiteGameStore(db_path)
+    assert store_b.delete(game_id) is True
+
+    # Aのキャッシュに古い参照があっても削除を検出
+    assert store_a.get(game_id) is None
+    assert game_id not in store_a._records
+
+    # 古い参照からの再保存も拒否
+    with pytest.raises(LookupError):
+        record_a.persist()
+
+
+def test_get_preserves_identity_for_unchanged_version(db_path) -> None:
+    """バージョンが変わっていない場合は同じレコードを返す。"""
+
+    store = SQLiteGameStore(db_path)
+    game_id, record = store.create()
+
+    assert store.get(game_id) is record
+    assert store.get(game_id) is record

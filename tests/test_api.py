@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import service as game_service
 from schemas import GameStateResponse
 import app as othello
-from storage import SQLiteGameStore
+from storage import SQLiteGameStore, GameRecord
 from game import BLACK, WHITE
 
 
@@ -405,34 +405,77 @@ def test_analysis_openapi_schema(client: TestClient) -> None:
     assert schema["$ref"].endswith("/AnalysisResponse")
 
 
-def test_concurrent_update_returns_409_and_refreshes(
+def test_api_reads_latest_state_from_other_store(
     client: TestClient,
     monkeypatch,
     tmp_path,
 ) -> None:
-    """競合時に409を返し、次のGETで最新の盤面を返す。"""
-
+    """他ストアの更新を次のAPIリクエストで取得できる。"""
     db_path = tmp_path / "concurrency.db"
-
-    # API側で使用するストアをSQLiteに変更する
     store_a = SQLiteGameStore(db_path)
     monkeypatch.setattr(othello, "store", store_a)
 
-    # API経由で新しい対局を作る
-    response = client.get("/state")
-    assert response.status_code == 200
-
+    # API側に対局を作成する
+    assert client.get("/state").status_code == 200
     game_id = next(iter(store_a._records))
 
-    # 別のワーカーを模したSQLiteストア
+    # 別ワーカーに相当するストアで着手する
     store_b = SQLiteGameStore(db_path)
     record_b = store_b.get(game_id)
     assert record_b is not None
 
-    # 別ワーカーが先に着手してDBを更新
     game_service.GameService(record_b).play(2, 3)
 
-    # API側のキャッシュは古いので競合する
+    # API側は更新後の盤面を取得できる
+    response = client.get("/state")
+
+    assert response.status_code == 200
+    assert response.json()["board"][2][3] == BLACK
+    assert response.json()["turn"] == WHITE
+
+    # 最新の盤面では(3,2)は合法手でない
+    invalid = client.post("/moves", json={"y": 3, "x": 2})
+    assert invalid.status_code == 400
+    assert invalid.json()["error"] == "Illegal move"
+
+
+def test_concurrent_update_returns_409(
+    client: TestClient,
+    monkeypatch,
+    tmp_path,
+) -> None:
+    """読み取り後に更新競合が発生した場合は409を返す。"""
+    db_path = tmp_path / "concurrency.db"
+    store_a = SQLiteGameStore(db_path)
+    monkeypatch.setattr(othello, "store", store_a)
+
+    # APIで初期対局を作る
+    assert client.get("/state").status_code == 200
+
+    # API側の保存メソッドを退避
+    original_save = store_a._save
+    store_b = SQLiteGameStore(db_path)
+
+    def save_with_concurrent_update(
+        target_id: str,
+        record: GameRecord,
+    ) -> None:
+        # APIが盤面を読んだ後、保存する直前に
+        # 別ワーカーが同じ対局を更新した状況を再現する
+        other = store_b.get(target_id)
+        assert other is not None
+
+        game_service.GameService(other).play(2, 3)
+
+        # API側が古いversionで保存しようとする
+        original_save(target_id, record)
+
+    monkeypatch.setattr(
+        store_a,
+        "_save",
+        save_with_concurrent_update,
+    )
+
     response = client.post(
         "/moves",
         json={"y": 3, "x": 2},
@@ -441,9 +484,8 @@ def test_concurrent_update_returns_409_and_refreshes(
     assert response.status_code == 409
     assert response.json()["error"] == ("Game state was updated by another request")
 
-    # 次の状態取得ではSQLiteの最新状態を返す
+    # 競合後、最新の盤面を取得できる
     refreshed = client.get("/state")
-
     assert refreshed.status_code == 200
     assert refreshed.json()["board"][2][3] == BLACK
     assert refreshed.json()["turn"] == WHITE
