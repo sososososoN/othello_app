@@ -33,6 +33,7 @@ class GameService:
             original_game = deepcopy(self.record.game)
             original_mode = self.record.mode
             original_difficulty = self.record.difficulty
+            original_version = self.record.version
             try:
                 yield
                 self.record.persist()
@@ -40,6 +41,7 @@ class GameService:
                 self.record.game = original_game
                 self.record.mode = original_mode
                 self.record.difficulty = original_difficulty
+                self.record.version = original_version
                 raise
 
     def _snapshot_unlocked(self) -> dict:
