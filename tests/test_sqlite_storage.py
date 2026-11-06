@@ -384,3 +384,31 @@ def test_version_migration_preserves_games(db_path) -> None:
     assert restored is not None
     assert restored.version == 0
     assert migrated.count() == 1
+
+
+def test_conflict_evicts_stale_cached_record(db_path) -> None:
+    """競合発生後はDBから最新のレコードを取得する。"""
+    store_a = SQLiteGameStore(db_path)
+    game_id, record_a = store_a.create()
+
+    store_b = SQLiteGameStore(db_path)
+    record_b = store_b.get(game_id)
+    assert record_b is not None
+
+    # 別ストアが先に更新
+    GameService(record_b).play(2, 3)
+
+    # Aの古い状態で更新すると競合する
+    with pytest.raises(ConcurrentUpdateError):
+        GameService(record_a).play(3, 2)
+
+    # 古いレコードはキャッシュから除去された
+    assert game_id not in store_a._records
+
+    # 次のget()はDBから最新状態を読み込む
+    refreshed = store_a.get(game_id)
+
+    assert refreshed is not None
+    assert refreshed is not record_a
+    assert refreshed.game.board[2][3] == BLACK
+    assert refreshed.version == 1

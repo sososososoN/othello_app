@@ -155,6 +155,8 @@ class SQLiteGameStore:
                         "SELECT 1 FROM games WHERE game_id = ?",
                         (game_id,),
                     ).fetchone()
+                    if self._records.get(game_id) is record:
+                        self._records.pop(game_id, None)
                     if exists is None:
                         raise LookupError(f"Game not found {game_id}")
                     raise ConcurrentUpdateError(
