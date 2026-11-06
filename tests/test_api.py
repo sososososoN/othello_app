@@ -6,6 +6,7 @@ import app as othello
 from storage import SQLiteGameStore
 from game import BLACK, WHITE
 
+
 def test_index(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200
