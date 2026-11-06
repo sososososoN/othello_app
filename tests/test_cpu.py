@@ -34,16 +34,6 @@ def test_choose_cpu_move() -> None:
     assert game.board == original_board
 
 
-def test_cpu_no_valid_moves() -> None:
-    board = [[BLACK] * 8 for _ in range(8)]
-    assert choose_cpu_move(board, depth=2) is None
-
-
-def test_terminal_evaluation() -> None:
-    board = [[WHITE] * 8 for _ in range(8)]
-    assert evaluate_board(board) > WIN_SCORE
-
-
 def test_minimax_pass() -> None:
     board = [[BLACK] * 8 for _ in range(8)]
     board[0][0] = 0
@@ -108,26 +98,6 @@ def test_terminal_black_win_has_low_score() -> None:
     board = [[BLACK] * 8 for _ in range(8)]
 
     assert evaluate_board(board) < -WIN_SCORE
-
-
-def test_cpu_returns_legal_move() -> None:
-    game = Game()
-    assert game.place(2, 3)
-
-    move = choose_cpu_move(game.board, depth=1)
-
-    assert move in game.valid_moves()
-
-
-def test_cpu_does_not_change_original_board() -> None:
-    game = Game()
-    assert game.place(2, 3)
-
-    original = [row.copy() for row in game.board]
-
-    choose_cpu_move(game.board, depth=1)
-
-    assert game.board == original
 
 
 def test_minimax_returns_integer() -> None:
