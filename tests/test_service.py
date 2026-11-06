@@ -245,3 +245,34 @@ def test_persist_failure_does_not_return_success() -> None:
         service.play(2, 3)
 
     assert service.state() == before
+
+
+def test_failed_persistence_restores_version() -> None:
+    """永続化に失敗した場合はversionも復元する。"""
+    from service import GameService
+    from storage import GameRecord
+
+    record = GameRecord()
+    service = GameService(record)
+
+    # 最初はversion=3だったとする
+    record.version = 3
+    before = service.state()
+
+    def failing_save() -> None:
+        # 保存処理が途中でメモリのversionを変更した状況を再現
+        record.version = 4
+        raise RuntimeError("Simulated persistence failure")
+
+    record.save_callback = failing_save
+
+    # 保存失敗時に例外が伝播することを確認
+    with pytest.raises(
+        RuntimeError,
+        match="Simulated persistence failure",
+    ):
+        service.play(2, 3)
+
+    # 盤面とversionの両方が元に戻る
+    assert service.state() == before
+    assert record.version == 3
