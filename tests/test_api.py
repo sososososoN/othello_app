@@ -2,6 +2,9 @@ from fastapi.testclient import TestClient
 
 import service as game_service
 from schemas import GameStateResponse
+import app as othello
+from storage import SQLiteGameStore
+from game import BLACK, WHITE
 
 
 def test_index(client: TestClient) -> None:
@@ -400,3 +403,47 @@ def test_analysis_openapi_schema(client: TestClient) -> None:
     schema = path["responses"]["200"]["content"]["application/json"]["schema"]
 
     assert schema["$ref"].endswith("/AnalysisResponse")
+
+
+def test_concurrent_update_returns_409_and_refreshes(
+    client: TestClient,
+    monkeypatch,
+    tmp_path,
+) -> None:
+    """競合時に409を返し、次のGETで最新の盤面を返す。"""
+
+    db_path = tmp_path / "concurrency.db"
+
+    # API側で使用するストアをSQLiteに変更する
+    store_a = SQLiteGameStore(db_path)
+    monkeypatch.setattr(othello, "store", store_a)
+
+    # API経由で新しい対局を作る
+    response = client.get("/state")
+    assert response.status_code == 200
+
+    game_id = next(iter(store_a._records))
+
+    # 別のワーカーを模したSQLiteストア
+    store_b = SQLiteGameStore(db_path)
+    record_b = store_b.get(game_id)
+    assert record_b is not None
+
+    # 別ワーカーが先に着手してDBを更新
+    game_service.GameService(record_b).play(2, 3)
+
+    # API側のキャッシュは古いので競合する
+    response = client.post(
+        "/moves",
+        json={"y": 3, "x": 2},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"] == ("Game state was updated by another request")
+
+    # 次の状態取得ではSQLiteの最新状態を返す
+    refreshed = client.get("/state")
+
+    assert refreshed.status_code == 200
+    assert refreshed.json()["board"][2][3] == BLACK
+    assert refreshed.json()["turn"] == WHITE

@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from storage import GameRecord, SQLiteGameStore
+from storage import GameRecord, SQLiteGameStore, ConcurrentUpdateError
 from service import GameError, GameService
 from schemas import (
     MoveRequest,
@@ -71,6 +71,19 @@ def handle_game_error(request: Request, error: GameError):
     return JSONResponse(
         status_code=error.status_code,
         content={"error": str(error)},
+    )
+
+
+@app.exception_handler(ConcurrentUpdateError)
+def handle_concurrent_update(
+    request: Request,
+    error: ConcurrentUpdateError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={
+            "error": "Game state was updated by another request",
+        },
     )
 
 
