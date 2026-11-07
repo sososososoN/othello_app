@@ -7,7 +7,6 @@
   ],
   // @/components のようなインポートをsrc配下に解決する
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
