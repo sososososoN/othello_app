@@ -22,6 +22,14 @@ let currentDifficulty = "normal";
 let pendingCpuTurn = false;
 let analysisToken = null;
 
+class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function requestJson(url, method = "GET", body = null) {
   const options = { method };
 
@@ -36,7 +44,10 @@ async function requestJson(url, method = "GET", body = null) {
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
+    throw new ApiError(
+      response.status,
+      `APIエラー: ${response.status} ${response.statusText}`,
+    );
   }
 
   return response.json();
@@ -209,26 +220,53 @@ async function finishCpuTurn(state) {
 }
 
 async function continueCpuTurn() {
-  // 着手待ちでない場合や通信中は何もしない
+  // CPUの着手待ち以外では処理しない
   if (!pendingCpuTurn || isLoading) return;
 
   await runRequest(async () => {
-    // CPUの着手をAPIに依頼
-    const state = await requestJson(
-      "/moves/cpu",
-      "POST",
-      analysisToken === null ? {} : { analysis_token: analysisToken },
-    );
-    analysisToken = null;
+    // 今回送信するトークンを保持
+    const token = analysisToken;
 
-    // 正常終了した場合のみ待機状態を解除
-    pendingCpuTurn = false;
+    try {
+      const state = await requestJson(
+        "/moves/cpu",
+        "POST",
+        token === null ? {} : { analysis_token: token },
+      );
 
-    // CPU着手後の盤面を表示
-    drawBoard(state);
+      // 正常に着手できた場合
+      analysisToken = null;
+      pendingCpuTurn = false;
+      drawBoard(state);
+    } catch (error) {
+      // 署名付きトークンが失効・不整合になった場合
+      const shouldRecover =
+        token !== null &&
+        error instanceof ApiError &&
+        (error.status === 400 || error.status === 409);
 
-    // ボタンを非表示に戻す
-    updateControls();
+      // 対象外のエラーは既存のrunRequestに処理させる
+      if (!shouldRecover) {
+        throw error;
+      }
+
+      // 古い解析結果とトークンを破棄
+      clearAnalysis();
+
+      // 最新の対局状態をサーバーから取得
+      const currentState = await requestJson("/state");
+
+      // 現在の盤面を描画し直す
+      drawBoard(currentState);
+
+      // CPUの手番であれば再解析
+      if (currentState.mode === "pvc" && currentState.turn === 2) {
+        await finishCpuTurn(currentState);
+      } else {
+        infoElement.textContent =
+          "対局状態が更新されたため、盤面を同期しました";
+      }
+    }
   });
 }
 

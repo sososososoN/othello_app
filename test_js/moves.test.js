@@ -418,4 +418,94 @@ describe("CPU評価値の盤面表示", () => {
       await waitForIdle();
     },
   );
+
+  test("解析トークン失効後に再解析してCPUの着手を再開できる", async () => {
+    // PvCモードを有効化
+    changeSelect("mode", "pvc");
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("analysis-enabled").disabled).toBe(false);
+      expect(document.getElementById("reset-button").disabled).toBe(false);
+    });
+
+    const checkbox = document.getElementById("analysis-enabled");
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change"));
+
+    changeSelect("cpu-execution-mode", "step");
+
+    const originalFetch = fetch.getMockImplementation();
+    let analysisCount = 0;
+    let cpuRequestCount = 0;
+
+    fetch.mockImplementation((url, options) => {
+      if (url === "/analysis") {
+        analysisCount += 1;
+
+        return Promise.resolve(
+          mockResponse({
+            best_move: [2, 4],
+            depth: 3,
+            nodes_visited: 42,
+            cutoffs: 5,
+            candidates: [
+              {
+                move: [2, 4],
+                total_score: 18,
+                minimax_score: 20,
+                penalty: 1,
+              },
+            ],
+            analysis_token: `token-${analysisCount}`,
+          }),
+        );
+      }
+
+      if (url === "/moves/cpu") {
+        cpuRequestCount += 1;
+
+        // 初回はトークン失効を再現
+        if (cpuRequestCount === 1) {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            statusText: "Bad Request",
+          });
+        }
+      }
+
+      return originalFetch(url, options);
+    });
+
+    // 人間が着手し、最初の解析を実行
+    getCell(2, 3).click();
+
+    await vi.waitFor(() => {
+      expect(analysisCount).toBe(1);
+      expect(document.getElementById("cpu-continue-button").disabled).toBe(
+        false,
+      );
+      expect(document.getElementById("cpu-continue-button").hidden).toBe(false);
+    });
+
+    // 初回CPU着手は失効エラー
+    document.getElementById("cpu-continue-button").click();
+
+    // 現在の局面に対して再解析される
+    await vi.waitFor(() => {
+      expect(analysisCount).toBe(2);
+      expect(document.getElementById("reset-button").disabled).toBe(false);
+      expect(document.getElementById("cpu-continue-button").hidden).toBe(false);
+    });
+
+    // 新しい解析結果を使って着手
+    document.getElementById("cpu-continue-button").click();
+
+    await vi.waitFor(() => {
+      expect(cpuRequestCount).toBe(2);
+      expect(getCell(2, 4).querySelector(".white")).not.toBeNull();
+    });
+
+    await waitForIdle();
+  });
 });
