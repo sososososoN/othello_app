@@ -244,3 +244,67 @@ describe("二重操作防止", () => {
     await waitForIdle();
   });
 });
+
+describe("CPU評価値の盤面表示", () => {
+  test("解析ON時は候補手を表示し、ボタンでCPUを進める", async () => {
+    changeSelect("mode", "pvc");
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("analysis-enabled").disabled).toBe(false);
+      expect(document.getElementById("reset-button").disabled).toBe(false);
+    });
+
+    const checkbox = document.getElementById("analysis-enabled");
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change"));
+
+    const originalFetch = fetch.getMockImplementation();
+
+    fetch.mockImplementation((url, options) => {
+      if (url === "/analysis?depth=1") {
+        return Promise.resolve(
+          mockResponse({
+            best_move: [2, 4],
+            depth: 1,
+            nodes_visited: 42,
+            cutoffs: 5,
+            candidates: [
+              {
+                move: [2, 4],
+                total_score: 18,
+                minimax_score: 20,
+                penalty: 1,
+              },
+            ],
+          }),
+        );
+      }
+
+      return originalFetch(url, options);
+    });
+
+    getCell(2, 3).click();
+
+    await vi.waitFor(() => {
+      expect(getCell(2, 4).querySelector(".analysis-score")?.textContent).toBe(
+        "18",
+      );
+      expect(getCell(2, 4).classList.contains("analysis-best")).toBe(true);
+    });
+
+    // ボタンを押すまではCPUが着手しない
+    expect(getCpuCalls()).toHaveLength(0);
+
+    document.getElementById("cpu-continue-button").click();
+
+    await vi.waitFor(() => {
+      expect(getCpuCalls()).toHaveLength(1);
+      expect(getCell(2, 4).querySelector(".white")).not.toBeNull();
+    });
+
+    await waitForIdle();
+
+    // CPUの着手後、盤面上の評価値は消える
+    expect(document.querySelectorAll(".analysis-score")).toHaveLength(0);
+  });
+});
