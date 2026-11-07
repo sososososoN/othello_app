@@ -8,10 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import type { Board, Position } from "@/types/game";
 
-// バックエンドのcreate_board()と同じ初期盤面。
-// 0=空き、1=黒、2=白
+// バックエンドと同じ初期盤面
+// 0: 空きマス、1: 黒石、2: 白石
 const initialBoard: Board = [
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
@@ -23,7 +24,7 @@ const initialBoard: Board = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Python側のget_valid_moves()に対応する初期合法手
+// 初期状態で黒が置ける4か所
 const initialValidMoves: Position[] = [
   [2, 3],
   [3, 2],
@@ -34,35 +35,48 @@ const initialValidMoves: Position[] = [
 function App() {
   return (
     <AppLayout>
-      <section className="mb-8">
-        <p className="text-sm font-medium text-primary">
-          PLAY AGAINST AI
-        </p>
+      {/*
+        mx-auto:
+          コンテンツ全体を横方向の中央へ
 
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          オセロをプレイ
-        </h1>
+        max-w-2xl:
+          コンテンツの最大幅を制限
+      */}
+      <div className="mx-auto w-full max-w-2xl">
+        {/* タイトル部分 */}
+        <section className="mb-8 text-center">
+          <p className="text-sm font-medium text-primary">
+            PLAY AGAINST AI
+          </p>
 
-        <p className="mt-3 text-muted-foreground">
-          AIの思考を可視化しながら、オセロを楽しもう。
-        </p>
-      </section>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            オセロをプレイ
+          </h1>
 
-      <Card className="mx-auto w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle>Game Board</CardTitle>
-          <CardDescription>
-            初期盤面のプレビュー（API連携前）
-          </CardDescription>
-        </CardHeader>
+          <p className="mt-3 text-muted-foreground">
+            AIの思考を可視化しながら、オセロを楽しもう。
+          </p>
+        </section>
 
-        <CardContent className="flex justify-center">
-          <GameBoard
-            board={initialBoard}
-            validMoves={initialValidMoves}
-          />
-        </CardContent>
-      </Card>
+        {/* 盤面カード */}
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle>Game Board</CardTitle>
+
+            <CardDescription>
+              初期盤面のプレビュー（API連携前）
+            </CardDescription>
+          </CardHeader>
+
+          {/* カード内部の盤面も中央揃え */}
+          <CardContent className="flex justify-center">
+            <GameBoard
+              board={initialBoard}
+              validMoves={initialValidMoves}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </AppLayout>
   );
 }
