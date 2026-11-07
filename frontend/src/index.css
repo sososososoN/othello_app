@@ -1,14 +1,49 @@
 
-/* Tailwind CSS v4のスタイルを読み込む */
 @import "tailwindcss";
 
-/* Webアプリ全体の基本設定 */
+/* Tailwind v4のテーマ変数を定義 */
+@theme {
+  /* 背景・カード・文字 */
+  --color-background: #0d1513;
+  --color-surface: #192721;
+  --color-surface-raised: #22352b;
+  --color-foreground: #edf8f0;
+  --color-muted: #a0b7aa;
+
+  /* 境界線とアクセント */
+  --color-border: #344a3e;
+  --color-accent: #6fe0a4;
+  --color-accent-hover: #92edbb;
+  --color-accent-foreground: #10271a;
+
+  /* 盤面専用 */
+  --color-board: #25814c;
+  --color-board-border: #174b31;
+
+  /* カードやボタンの角丸 */
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+
+  /* 共通フォント */
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+
+/* 全ページに共通する初期スタイル */
 :root {
-  font-family: system-ui, sans-serif;
-  font-synthesis: none;
+  font-family: var(--font-sans);
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+button,
+input,
+select {
+  font: inherit;
 }
