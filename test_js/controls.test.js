@@ -215,3 +215,35 @@ describe("CPU難易度", () => {
     });
   });
 });
+
+describe("CPU解析チェックボックス", () => {
+  test("PvPでは無効になっている", () => {
+    const checkbox = document.getElementById("analysis-enabled");
+
+    expect(checkbox.disabled).toBe(true);
+  });
+
+  test("PvCに変更すると有効になる", async () => {
+    changeSelect("mode", "pvc");
+
+    await vi.waitFor(() => {
+      const checkbox = document.getElementById("analysis-enabled");
+      expect(checkbox.disabled).toBe(false);
+    });
+  });
+
+  test("PvPに戻すと無効になる", async () => {
+    changeSelect("mode", "pvc");
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("analysis-enabled").disabled).toBe(false);
+      expect(document.getElementById("reset-button").disabled).toBe(false);
+    });
+
+    changeSelect("mode", "pvp");
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("analysis-enabled").disabled).toBe(true);
+    });
+  });
+});

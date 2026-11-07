@@ -95,9 +95,18 @@ export function changeSelect(id, value) {
 }
 
 // テスト用DOMを生成する
+
 function createTestDOM() {
   document.body.innerHTML = `
-    <div id="board"></div>
+    <main id="game-layout">
+      <div id="board"></div>
+      <section id="analysis-section">
+        <div id="analysis-panel" hidden>
+          <div id="analysis-content"></div>
+        </div>
+      </section>
+    </main>
+
     <div id="info"></div>
 
     <select id="mode">
@@ -112,6 +121,19 @@ function createTestDOM() {
     </select>
 
     <button id="reset-button">Reset</button>
+
+    <!-- 新しく追加したCPU解析機能の要素 -->
+    <section id="analysis-section">
+      <label>
+        <input type="checkbox" id="analysis-enabled" disabled>
+        CPUの思考を表示
+      </label>
+
+      <!-- 解析結果の表示先 -->
+      <div id="analysis-panel" hidden>
+        <div id="analysis-content"></div>
+      </div>
+    </section>
   `;
 }
 

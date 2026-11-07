@@ -113,3 +113,79 @@ body {
     padding: 8px;
   }
 }
+
+
+/* 通常時は盤面を中央配置 */
+#game-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+  align-items: start;
+  gap: 24px;
+  width: 100%;
+}
+
+/* 解析ON時は2カラム */
+#game-layout.analysis-on {
+  grid-template-columns: minmax(0, 560px) minmax(280px, 360px);
+}
+
+/* 盤面は既存のサイズを維持 */
+#game-layout #board {
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/* 解析OFF時は領域自体を隠す */
+#analysis-section {
+  display: none;
+  min-width: 0;
+}
+
+/* 解析ON時のみ表示 */
+#game-layout.analysis-on #analysis-section {
+  display: block;
+}
+
+#analysis-panel {
+  padding: 20px;
+  border: 1px solid #d5d9dd;
+  border-radius: 10px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+#analysis-panel[hidden] {
+  display: none;
+}
+
+#analysis-panel h3 {
+  margin: 0 0 16px;
+}
+
+#analysis-content ol {
+  padding-left: 24px;
+}
+
+#analysis-content li {
+  margin-bottom: 8px;
+}
+
+/* チェックボックス */
+.info-area label:has(#analysis-enabled) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* 狭い画面では縦並びに変更 */
+@media (max-width: 1050px) {
+  #game-layout.analysis-on {
+    grid-template-columns: minmax(0, 560px);
+  }
+
+  #analysis-section {
+    width: 100%;
+  }
+}
