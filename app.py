@@ -17,9 +17,11 @@ from schemas import (
     GameStateResponse,
     AnalysisResponse,
     MoveEvaluationResponse,
+    CpuMoveRequest,
 )
 from learning.articles import get_article, list_articles, render_article
 from ai.engine import DIFFICULTY_DEPTH, analyze_cpu_move
+from ai.analysis_token import AnalysisTokenManager, board_fingerprint
 from game import WHITE
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -29,6 +31,8 @@ app = FastAPI(title="Othello API", version="1.0.0")
 session_secret_key = os.environ.get("SESSION_SECRET_KEY")
 if session_secret_key is None or len(session_secret_key) < 32:
     raise RuntimeError("SESSION_SECRET_KEY must contain at least 32 characters")
+
+analysis_tokens = AnalysisTokenManager(session_secret_key)
 
 app.add_middleware(
     SessionMiddleware,
@@ -115,9 +119,39 @@ def create_player_move(
 
 
 @app.post("/moves/cpu", response_model=GameStateResponse)
-def create_cpu_move(request: Request) -> dict:
-    service = GameService(get_game(request))
-    return service.play_cpu()
+def create_cpu_move(
+    request: Request,
+    data: CpuMoveRequest | None = None,
+) -> dict:
+    record = get_game(request)
+    service = GameService(record)
+    if data is None or data.analysis_token is None:
+        return service.play_cpu()
+
+    try:
+        verified = analysis_tokens.verify(data.analysis_token)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    with record.lock:
+        game_id = request.session.get("game_id")
+        if (
+            verified.game_id != game_id
+            or verified.board_hash != board_fingerprint(record.game.board)
+            or verified.version != record.version
+            or verified.difficulty != record.difficulty
+            or verified.depth != DIFFICULTY_DEPTH[record.difficulty]
+            or record.mode != "pvc"
+            or record.game.turn != WHITE
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Analysis result is no longer valid",
+            )
+        return service.play_cpu(preselected_move=verified.move)
 
 
 @app.get("/analysis", response_model=AnalysisResponse)
@@ -141,11 +175,30 @@ def get_analysis(
                 detail="It is not CPU's turn",
             )
         board = [row.copy() for row in record.game.board]
-        selected_depth = DIFFICULTY_DEPTH[record.difficulty] if depth is None else depth
+        version = record.version
+        difficulty = record.difficulty
+
+        configured_depth = DIFFICULTY_DEPTH[difficulty]
+        selected_depth = configured_depth if depth is None else depth
     result = analyze_cpu_move(
         board,
         depth=selected_depth,
     )
+    token = None
+
+    if result.best_move is not None and selected_depth == configured_depth:
+        game_id = request.session.get("game_id")
+
+        if isinstance(game_id, str):
+            token = analysis_tokens.issue(
+                game_id=game_id,
+                board=board,
+                version=version,
+                difficulty=difficulty,
+                depth=selected_depth,
+                move=result.best_move,
+            )
+
     return AnalysisResponse(
         best_move=result.best_move,
         score=result.score,
@@ -162,6 +215,7 @@ def get_analysis(
             )
             for candidate in result.candidates
         ],
+        analysis_token=token,
     )
 
 

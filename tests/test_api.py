@@ -489,3 +489,60 @@ def test_concurrent_update_returns_409(
     assert refreshed.status_code == 200
     assert refreshed.json()["board"][2][3] == BLACK
     assert refreshed.json()["turn"] == WHITE
+
+
+def test_analyzed_cpu_move_reuses_best_move(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    """解析済みの最善手を使い、CPU探索を再実行しない。"""
+
+    # 計算時間を短くするためEasyを使用
+    assert client.patch("/mode", json={"mode": "pvc"}).status_code == 200
+
+    assert client.patch("/difficulty", json={"difficulty": "easy"}).status_code == 200
+
+    assert client.post("/moves/player", json={"y": 2, "x": 3}).status_code == 200
+
+    # 先に解析して署名付きトークンを取得
+    response = client.get("/analysis")
+    assert response.status_code == 200
+
+    analysis = response.json()
+    token = analysis["analysis_token"]
+
+    assert isinstance(token, str)
+    assert token
+
+    # ここから再探索が行われたら失敗させる
+    def fail_search(*args, **kwargs):
+        raise AssertionError("CPU search was executed again")
+
+    monkeypatch.setattr(
+        game_service,
+        "choose_cpu_move",
+        fail_search,
+    )
+
+    # 解析結果を再利用してCPUが着手する
+    move_response = client.post(
+        "/moves/cpu",
+        json={"analysis_token": token},
+    )
+
+    assert move_response.status_code == 200, move_response.json()
+
+    # 実際に置かれた白石が解析の最善手と一致
+    y, x = analysis["best_move"]
+    state = move_response.json()
+
+    assert state["board"][y][x] == WHITE
+    assert state["turn"] == BLACK
+
+
+def test_cpu_rejects_invalid_analysis_token(client: TestClient) -> None:
+    response = client.post(
+        "/moves/cpu",
+        json={"analysis_token": "invalid-token"},
+    )
+    assert response.status_code == 400

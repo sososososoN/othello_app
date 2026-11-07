@@ -65,3 +65,11 @@ class AnalysisResponse(BaseModel):
     cutoffs: int
     elapsed_ms: float
     candidates: list[MoveEvaluationResponse]
+    analysis_token: str | None = None
+
+
+class CpuMoveRequest(BaseModel):
+    analysis_token: Annotated[
+        str | None,
+        Field(min_length=1, max_length=4096),
+    ] = None
