@@ -1,124 +1,219 @@
 
+/* ========================================
+   1. Tailwind CSS / shadcn/ui / フォント
+   ======================================== */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* .darkクラスが付いた要素の子孫にdark:を適用 */
 @custom-variant dark (&:is(.dark *));
 
-/* Tailwind v4のテーマ変数を定義 */
-@theme {
-  /* 背景・カード・文字 */
-  --color-background: #0d1513;
+/* ========================================
+   2. ライトテーマ
+   将来ライトモードを追加するために保持
+   ======================================== */
+
+:root {
+  --background: #f7faf8;
+  --foreground: #14241b;
+
+  --card: #ffffff;
+  --card-foreground: #14241b;
+
+  --popover: #ffffff;
+  --popover-foreground: #14241b;
+
+  --primary: #176d49;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e5f1e9;
+  --secondary-foreground: #183c29;
+
+  --muted: #edf3ef;
+  --muted-foreground: #526b5c;
+
+  --accent: #dcefe2;
+  --accent-foreground: #183c29;
+
+  --destructive: #dc2626;
+
+  --border: #cbdacf;
+  --input: #cbdacf;
+  --ring: #176d49;
+
+  /* AI解析グラフの系列色 */
+  --chart-1: #16834b;
+  --chart-2: #0284c7;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #e11d48;
+
+  /* 共通コンポーネントの角丸 */
+  --radius: 0.625rem;
+
+  /* 将来のサイドバー用 */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #14241b;
+  --sidebar-primary: #176d49;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e5f1e9;
+  --sidebar-accent-foreground: #183c29;
+  --sidebar-border: #cbdacf;
+  --sidebar-ring: #176d49;
+}
+
+/* ========================================
+   3. ダークテーマ
+   Othello AI Labの標準デザイン
+   ======================================== */
+
+.dark {
+  color-scheme: dark;
+
+  /* ページ全体 */
+  --background: #0d1513;
+  --foreground: #edf8f0;
+
+  /* カード・ポップオーバー */
+  --card: #192721;
+  --card-foreground: #edf8f0;
+
+  --popover: #192721;
+  --popover-foreground: #edf8f0;
+
+  /* Primary: 明るいエメラルド */
+  --primary: #6fe0a4;
+  --primary-foreground: #10271a;
+
+  /* Secondary: 深緑 */
+  --secondary: #22352b;
+  --secondary-foreground: #edf8f0;
+
+  /* 補助背景と補助文字 */
+  --muted: #22352b;
+  --muted-foreground: #a0b7aa;
+
+  /* ホバー・選択状態 */
+  --accent: #244733;
+  --accent-foreground: #edf8f0;
+
+  /* エラー・境界線・入力 */
+  --destructive: #fb7185;
+
+  --border: #344a3e;
+  --input: #344a3e;
+  --ring: #6fe0a4;
+
+  /* AI解析グラフ */
+  --chart-1: #6fe0a4;
+  --chart-2: #38bdf8;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #fb7185;
+
+  /* サイドバー */
+  --sidebar: #192721;
+  --sidebar-foreground: #edf8f0;
+
+  --sidebar-primary: #6fe0a4;
+  --sidebar-primary-foreground: #10271a;
+
+  --sidebar-accent: #244733;
+  --sidebar-accent-foreground: #edf8f0;
+
+  --sidebar-border: #344a3e;
+  --sidebar-ring: #6fe0a4;
+}
+
+/* ========================================
+   4. Tailwind v4 デザイントークン
+   セマンティック変数をUtilityクラスに公開
+
+   例:
+   --color-background → bg-background
+   --color-primary → bg-primary
+   --color-card → bg-card
+   ======================================== */
+
+@theme inline {
+  /* フォント */
+  --font-sans: "Geist Variable", sans-serif;
+  --font-heading: "Geist Variable", sans-serif;
+
+  /* 基本色 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* カード */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  /* ポップオーバー */
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  /* Primary */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  /* Secondary */
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* Muted */
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Accent */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* エラー・境界線 */
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* グラフ */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* サイドバー */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* アプリ固有のサーフェス */
   --color-surface: #192721;
   --color-surface-raised: #22352b;
-  --color-foreground: #edf8f0;
-  --color-muted: #a0b7aa;
 
-  /* 境界線とアクセント */
-  --color-border: #344a3e;
-  --color-accent: #6fe0a4;
+  /* ホバー時の明るいエメラルド */
   --color-accent-hover: #92edbb;
-  --color-accent-foreground: #10271a;
 
-  /* 盤面専用 */
+  /* オセロ盤面 */
   --color-board: #25814c;
   --color-board-border: #174b31;
 
-  /* カードやボタンの角丸 */
+  /* オセロの石 */
+  --color-stone-black: #151515;
+  --color-stone-white: #ffffff;
+
+  /* アプリ固有の角丸 */
   --radius-card: 1rem;
   --radius-control: 0.625rem;
 
-  /* 共通フォント */
-  --font-sans: system-ui, -apple-system, sans-serif;
-}
-
-/* 全ページに共通する初期スタイル */
-:root {
-  font-family: var(--font-sans);
-  color-scheme: dark;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background: var(--color-background);
-  color: var(--color-foreground);
-}
-
-button,
-input,
-select {
-  font: inherit;
-}
-
-@theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
+  /* shadcn/uiの角丸スケール */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -128,48 +223,35 @@ select {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+/* ========================================
+   5. グローバルスタイル
+   ======================================== */
 
 @layer base {
+  /* すべての要素に共通の境界線・アウトライン色 */
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
     @apply font-sans;
+    min-width: 320px;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    font-synthesis: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 }
