@@ -20,6 +20,7 @@ let currentTurn = 1;
 let currentMode = "pvp";
 let currentDifficulty = "normal";
 let pendingCpuTurn = false;
+let analysisToken = null;
 
 async function requestJson(url, method = "GET", body = null) {
   const options = { method };
@@ -169,6 +170,7 @@ async function finishCpuTurn(state) {
     try {
       // まず既存の解析APIから候補手の評価を取得
       const analysis = await requestJson("/analysis");
+      analysisToken = analysis.analysis_token ?? null;
 
       // 右側の解析結果と盤面上の評価値を描画
       renderAnalysis(analysis);
@@ -194,7 +196,12 @@ async function finishCpuTurn(state) {
   }
 
   // 解析OFF・自動実行・解析失敗時のCPU着手
-  const cpuState = await requestJson("/moves/cpu", "POST", {});
+  const cpuState = await requestJson(
+    "/moves/cpu",
+    "POST",
+    analysisToken === null ? {} : { analysis_token: analysisToken },
+  );
+  analysisToken = null;
 
   // 着手後の盤面を表示
   // 盤面は再生成されるので評価値の重ね表示も消える
@@ -207,7 +214,12 @@ async function continueCpuTurn() {
 
   await runRequest(async () => {
     // CPUの着手をAPIに依頼
-    const state = await requestJson("/moves/cpu", "POST", {});
+    const state = await requestJson(
+      "/moves/cpu",
+      "POST",
+      analysisToken === null ? {} : { analysis_token: analysisToken },
+    );
+    analysisToken = null;
 
     // 正常終了した場合のみ待機状態を解除
     pendingCpuTurn = false;
@@ -296,6 +308,7 @@ async function changeDifficulty() {
 }
 
 function clearAnalysis() {
+  analysisToken = null;
   pendingCpuTurn = false;
 
   document.querySelectorAll(".analysis-score").forEach((element) => {

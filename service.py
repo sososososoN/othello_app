@@ -104,8 +104,14 @@ class GameService:
         if not game.place(y, x):
             raise GameError("Illegal move", 400)
 
-    def _play_cpu_turn(self, game: Game) -> None:
-        if self.cpu_selector is not None:
+    def _play_cpu_turn(
+        self,
+        game: Game,
+        selected_move: Position | None = None,
+    ) -> None:
+        if selected_move is not None:
+            move = selected_move
+        elif self.cpu_selector is not None:
             move = self.cpu_selector(game.board)
         else:
             depth = DIFFICULTY_DEPTH[self.record.difficulty]
@@ -129,7 +135,10 @@ class GameService:
             self._play_human_turn(self.record.game, y, x)
             return self._snapshot_unlocked()
 
-    def play_cpu(self) -> dict:
+    def play_cpu(
+        self,
+        preselected_move: Position | None = None,
+    ) -> dict:
         with self._update():
             game = self.record.game
 
@@ -139,8 +148,11 @@ class GameService:
             if game.turn != WHITE:
                 raise GameError("It is not CPU's turn", 409)
 
+            self._play_cpu_turn(game, preselected_move)
+
             while game.turn == WHITE:
                 self._play_cpu_turn(game)
+
             return self._snapshot_unlocked()
 
     def reset(self) -> dict:
