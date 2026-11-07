@@ -257,6 +257,7 @@ describe("CPU評価値の盤面表示", () => {
     const checkbox = document.getElementById("analysis-enabled");
     checkbox.checked = true;
     checkbox.dispatchEvent(new Event("change"));
+    changeSelect("cpu-execution-mode", "step");
 
     const originalFetch = fetch.getMockImplementation();
 
@@ -306,5 +307,67 @@ describe("CPU評価値の盤面表示", () => {
 
     // CPUの着手後、盤面上の評価値は消える
     expect(document.querySelectorAll(".analysis-score")).toHaveLength(0);
+  });
+
+  test("自動実行では解析後にCPUが着手する", async () => {
+    // PvCモードに変更する
+    changeSelect("mode", "pvc");
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("reset-button").disabled).toBe(false);
+    });
+
+    // 解析を有効にする
+    const checkbox = document.getElementById("analysis-enabled");
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change"));
+
+    // 自動実行を選択する
+    changeSelect("cpu-execution-mode", "auto");
+
+    // 解析APIだけをモックする
+    const originalFetch = fetch.getMockImplementation();
+
+    fetch.mockImplementation((url, options) => {
+      if (url === "/analysis?depth=1") {
+        return Promise.resolve(
+          mockResponse({
+            best_move: [2, 4],
+            depth: 1,
+            nodes_visited: 42,
+            cutoffs: 5,
+            candidates: [
+              {
+                move: [2, 4],
+                total_score: 18,
+                minimax_score: 20,
+                penalty: 1,
+              },
+            ],
+          }),
+        );
+      }
+
+      return originalFetch(url, options);
+    });
+
+    // 人間が着手する
+    getCell(2, 3).click();
+
+    // 解析APIとCPU着手APIが自動実行される
+    await vi.waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("/analysis?depth=1", {
+        method: "GET",
+      });
+      expect(getCpuCalls()).toHaveLength(1);
+    });
+
+    await waitForIdle();
+
+    // 手動進行ボタンは表示されない
+    expect(document.getElementById("cpu-continue-button").hidden).toBe(true);
+
+    // CPUの白石が盤面に反映される
+    expect(getCell(2, 4).querySelector(".white")).not.toBeNull();
   });
 });

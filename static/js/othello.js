@@ -11,6 +11,7 @@ const analysisPanel = document.getElementById("analysis-panel");
 const analysisContent = document.getElementById("analysis-content");
 const gameLayout = document.getElementById("game-layout");
 const cpuContinueButton = document.getElementById("cpu-continue-button");
+const cpuExecutionModeElement = document.getElementById("cpu-execution-mode");
 
 // ゲーム中の画面側の状態
 let gameStarted = false;
@@ -66,11 +67,22 @@ function updateControls() {
   modeElement.disabled = gameStarted;
   difficultyElement.disabled = gameStarted || currentMode !== "pvc";
   difficultyElement.value = currentDifficulty;
+
+  // 解析機能はPvCモードでのみ使用可能
   analysisCheckbox.disabled =
     isLoading || pendingCpuTurn || currentMode !== "pvc";
 
+  // 解析ONのときだけCPU実行方式を選べる
+  // CPUの着手待ち中は切り替えを禁止
+  cpuExecutionModeElement.disabled =
+    isLoading ||
+    pendingCpuTurn ||
+    currentMode !== "pvc" ||
+    !analysisCheckbox.checked;
+
   updateAnalysisLayout();
 
+  // ステップ実行の待機中のみ進行ボタンを表示
   cpuContinueButton.hidden = !pendingCpuTurn;
   cpuContinueButton.disabled = isLoading;
 }
@@ -145,25 +157,47 @@ function waitForPaint() {
 }
 
 async function finishCpuTurn(state) {
-  if (state.mode !== "pvc" || state.turn !== 2) return;
+  // CPUの手番以外は何もしない
+  if (state.mode !== "pvc" || state.turn !== 2) {
+    return;
+  }
 
   infoElement.textContent = "CPUが考えています…";
   await waitForPaint();
+
   if (analysisCheckbox.checked) {
     try {
+      // まず既存の解析APIから候補手の評価を取得
       const analysis = await requestJson("/analysis?depth=1");
+
+      // 右側の解析結果と盤面上の評価値を描画
       renderAnalysis(analysis);
-      pendingCpuTurn = true;
-      updateControls();
-      infoElement.textContent = "CPUの解析結果を確認してください";
-      return;
+      await waitForPaint();
+
+      // ステップ実行ならここで処理を終了する
+      if (cpuExecutionModeElement.value === "step") {
+        pendingCpuTurn = true;
+        updateControls();
+
+        infoElement.textContent =
+          "解析結果を確認して「次の手へ」を押してください";
+
+        return;
+      }
+
+      // 自動実行なら停止せず下のCPU着手処理へ進む
     } catch (error) {
-      console.error("CPU analysis failed", error);
+      // 解析失敗時も対局は続行する
+      console.error("CPU analysis failed:", error);
       clearAnalysis();
     }
   }
 
+  // 解析OFF・自動実行・解析失敗時のCPU着手
   const cpuState = await requestJson("/moves/cpu", "POST", {});
+
+  // 着手後の盤面を表示
+  // 盤面は再生成されるので評価値の重ね表示も消える
   drawBoard(cpuState);
 }
 
@@ -379,7 +413,6 @@ modeElement.addEventListener("change", () => {
 
 analysisCheckbox.addEventListener("change", () => {
   clearAnalysis();
-  updateAnalysisLayout();
 });
 
 difficultyElement.addEventListener("change", () => {
