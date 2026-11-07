@@ -51,21 +51,19 @@ def test_minimax_pass() -> None:
 
 
 def test_order_moves_prioritizes_high_weight_cells() -> None:
-    board = create_board()
     moves = [(1, 1), (0, 0), (2, 2)]
 
-    ordered = order_moves(board, moves, WHITE)
+    ordered = order_moves(moves, WHITE)
 
     assert ordered[0] == (0, 0)
     assert ordered[-1] == (1, 1)
 
 
 def test_order_moves_does_not_mutate_input() -> None:
-    board = create_board()
     moves = [(2, 3), (3, 2), (4, 5)]
     original = moves.copy()
 
-    order_moves(board, moves, WHITE)
+    order_moves(moves, WHITE)
 
     assert moves == original
 
@@ -74,7 +72,7 @@ def test_order_moves_preserves_moves() -> None:
     board = create_board()
     moves = get_valid_moves(board, BLACK)
 
-    ordered = order_moves(board, moves, BLACK)
+    ordered = order_moves(moves, BLACK)
 
     assert sorted(ordered) == sorted(moves)
 
