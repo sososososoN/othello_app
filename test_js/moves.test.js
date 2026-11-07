@@ -262,7 +262,7 @@ describe("CPU評価値の盤面表示", () => {
     const originalFetch = fetch.getMockImplementation();
 
     fetch.mockImplementation((url, options) => {
-      if (url === "/analysis?depth=1") {
+      if (url === "/analysis") {
         return Promise.resolve(
           mockResponse({
             best_move: [2, 4],
@@ -329,7 +329,7 @@ describe("CPU評価値の盤面表示", () => {
     const originalFetch = fetch.getMockImplementation();
 
     fetch.mockImplementation((url, options) => {
-      if (url === "/analysis?depth=1") {
+      if (url === "/analysis") {
         return Promise.resolve(
           mockResponse({
             best_move: [2, 4],
@@ -356,7 +356,7 @@ describe("CPU評価値の盤面表示", () => {
 
     // 解析APIとCPU着手APIが自動実行される
     await vi.waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/analysis?depth=1", {
+      expect(fetch).toHaveBeenCalledWith("/analysis", {
         method: "GET",
       });
       expect(getCpuCalls()).toHaveLength(1);
@@ -370,4 +370,52 @@ describe("CPU評価値の盤面表示", () => {
     // CPUの白石が盤面に反映される
     expect(getCell(2, 4).querySelector(".white")).not.toBeNull();
   });
+  test.each(["easy", "normal", "hard"])(
+    "難易度%sでも解析深さはサーバー側で決定する",
+    async (difficulty) => {
+      changeSelect("mode", "pvc");
+      await vi.waitFor(() => {
+        expect(document.getElementById("reset-button").disabled).toBe(false);
+        expect(document.getElementById("difficulty").disabled).toBe(false);
+      });
+      changeSelect("difficulty", difficulty);
+
+      await vi.waitFor(() => {
+        expect(document.getElementById("reset-button").disabled).toBe(false);
+        expect(document.getElementById("difficulty").value).toBe(difficulty);
+      });
+
+      const checkbox = document.getElementById("analysis-enabled");
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event("change"));
+
+      const originalFetch = fetch.getMockImplementation();
+
+      fetch.mockImplementation((url, options) => {
+        if (url === "/analysis") {
+          return Promise.resolve(
+            mockResponse({
+              best_move: [2, 4],
+              depth: 1,
+              nodes_visited: 42,
+              cutoffs: 5,
+              candidates: [],
+            }),
+          );
+        }
+
+        return originalFetch(url, options);
+      });
+
+      getCell(2, 3).click();
+
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith("/analysis", {
+          method: "GET",
+        });
+        expect(getCpuCalls()).toHaveLength(1);
+      });
+      await waitForIdle();
+    },
+  );
 });
