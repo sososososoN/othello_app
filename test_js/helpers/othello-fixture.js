@@ -117,6 +117,11 @@ function createTestDOM() {
       <input type="checkbox" id="analysis-enabled" disabled>
       CPUの思考を表示
     </label>
+    <label for="cpu-execution-mode">CPU実行方式:</label>
+      <select id="cpu-execution-mode" disabled>
+          <option value="auto" selected>自動実行</option>
+          <option value="step">ステップ実行</option>
+      </select>
 
     <main id="game-layout">
       <div id="board"></div>
@@ -125,7 +130,7 @@ function createTestDOM() {
         <div id="analysis-panel" hidden>
           <div id="analysis-content"></div>
           <button id="cpu-continue-button" hidden>
-            CPUの着手を進める
+            次の手へ
           </button>
         </div>
       </section>
