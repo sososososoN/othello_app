@@ -1,4 +1,5 @@
 
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,23 +11,34 @@ import {
 
 function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6">
-      {/* shadcn/uiのカード */}
-      <Card className="w-full max-w-md">
+    <AppLayout>
+      <section className="mb-8">
+        <p className="text-sm font-medium text-primary">
+          PLAY AGAINST AI
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          オセロをプレイ
+        </h1>
+        <p className="mt-3 text-muted-foreground">
+          AIの思考を可視化しながら、オセロを楽しもう。
+        </p>
+      </section>
+
+      <Card className="max-w-xl">
         <CardHeader>
-          <CardTitle>Othello AI Lab</CardTitle>
+          <CardTitle>Game Dashboard</CardTitle>
           <CardDescription>
-            React + Tailwind CSS + shadcn/ui
+            次のステップでオセロ盤面を実装します。
           </CardDescription>
         </CardHeader>
-
-        <CardContent className="flex gap-3">
-          {/* 次のStepで実際のゲーム操作につなげる */}
-          <Button>ゲームを始める</Button>
-          <Button variant="outline">AI解析</Button>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button disabled>対局を開始</Button>
+          <Button variant="outline" disabled>
+            AI解析
+          </Button>
         </CardContent>
       </Card>
-    </main>
+    </AppLayout>
   );
 }
 
