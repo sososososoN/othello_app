@@ -59,7 +59,6 @@ def _select_best_move(
     """最善手を選択し、必要に応じて候補手の解析情報を収集する。"""
 
     moves = order_moves(
-        board,
         get_valid_moves(board, WHITE),
         WHITE,
     )

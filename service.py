@@ -96,6 +96,14 @@ class GameService:
             self.record.difficulty = difficulty
             return self._snapshot_unlocked()
 
+    def _play_human_turn(self, game: Game, y: int, x: int) -> None:
+        if game.turn == EMPTY:
+            raise GameError("Game has ended", 409)
+        if self.record.mode == "pvc" and game.turn == WHITE:
+            raise GameError("It is CPU's turn", 409)
+        if not game.place(y, x):
+            raise GameError("Illegal move", 400)
+
     def _play_cpu_turn(self, game: Game) -> None:
         if self.cpu_selector is not None:
             move = self.cpu_selector(game.board)
@@ -110,12 +118,7 @@ class GameService:
     def play(self, y: int, x: int) -> dict:
         with self._update():
             game = self.record.game
-            if game.turn == EMPTY:
-                raise GameError("Game has ended", 409)
-            if self.record.mode == "pvc" and game.turn == WHITE:
-                raise GameError("It is CPU's turn", 409)
-            if not game.place(y, x):
-                raise GameError("Illegal move", 400)
+            self._play_human_turn(game, y, x)
             if self.record.mode == "pvc":
                 while game.turn == WHITE:
                     self._play_cpu_turn(game)
@@ -123,16 +126,7 @@ class GameService:
 
     def play_human(self, y: int, x: int) -> dict:
         with self._update():
-            game = self.record.game
-
-            if game.turn == EMPTY:
-                raise GameError("Game has ended", 409)
-
-            if self.record.mode == "pvc" and game.turn == WHITE:
-                raise GameError("It is CPU's turn", 409)
-
-            if not game.place(y, x):
-                raise GameError("Illegal move", 400)
+            self._play_human_turn(self.record.game, y, x)
             return self._snapshot_unlocked()
 
     def play_cpu(self) -> dict:

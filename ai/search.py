@@ -34,7 +34,6 @@ def apply_move(
 
 
 def order_moves(
-    board: Board,
     moves: list[Position],
     player: int,
 ) -> list[Position]:
@@ -71,7 +70,6 @@ def minimax(
         return evaluate_board(board)
 
     moves = order_moves(
-        board,
         get_valid_moves(board, player),
         player,
     )
