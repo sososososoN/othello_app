@@ -8,22 +8,43 @@
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <script src="{{ url_for('static', path='js/othello.js') }}" defer></script>
 </head>
+
 <body>
     <div class="info-area">
         <h2>オセロ - <span id="info">黒の番</span></h2>
+
         <label for="mode">モード選択:</label>
         <select id="mode">
             <option value="pvp">二人で遊ぶ</option>
             <option value="pvc">一人で遊ぶ（CPU）</option>
         </select>
+
         <label for="difficulty">CPU難易度:</label>
         <select id="difficulty" disabled>
             <option value="easy">Easy</option>
             <option value="normal" selected>Normal</option>
             <option value="hard">Hard</option>
         </select>
+
         <button id="reset-button" type="button">リセット</button>
+
+        <label for="analysis-enabled">
+            <input type="checkbox" id="analysis-enabled" disabled>
+            CPUの思考を表示
+        </label>
     </div>
-    <div id="board"></div>
+
+    <!-- 盤面と解析パネルをまとめるレイアウト -->
+    <main id="game-layout">
+        <div id="board"></div>
+
+        <section id="analysis-section" aria-label="CPUの思考解析">
+            <div id="analysis-panel" role="status" aria-live="polite" hidden>
+                <h3>CPUの解析結果</h3>
+                <div id="analysis-content"></div>
+            </div>
+        </section>
+    </main>
 </body>
+
 </html>
