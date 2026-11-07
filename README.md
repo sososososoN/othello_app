@@ -66,7 +66,7 @@ Windows PowerShell：
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
 ### 3. JavaScriptの依存関係をインストール
@@ -89,6 +89,7 @@ OTHELLO_DB_PATH=data/othello.db
 署名鍵は以下のコマンドで生成できます。
 
 ```powershell
+Copy-Item .env.example .env
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
@@ -183,16 +184,22 @@ GitHub ActionsでCIを実行しています。
 
 ## 今後の予定
 
+## 今後の予定
+
 - CPUの候補手・評価値・探索ノード数の可視化
 - Minimax法・αβ枝刈りなどの学習コラム拡充
 - 探索木のインタラクティブな可視化
 - アルゴリズム比較・実験機能
 - 本番環境へのデプロイ
-- AI探索エンジンのモジュール分割
+- 並行アクセス時の整合性とエラーハンドリングの強化
 
 ## 注意事項
 
-- 現在のゲーム状態管理は単一サーバープロセスでの利用を想定しています。
+## 注意事項
+
+- 対局状態はSQLiteに永続化されます。
+- 更新競合はバージョン番号を使用した楽観的ロックで検出し、APIではHTTP 409を返します。
+- 複数ワーカー間で完全な処理の直列化を保証する設計ではありません。
 - 学習用Minimaxデモは固定データを使用しており、実際のCPU探索とは未連携です。
 - CPUの応答時間は探索深さや盤面によって変化します。
 

@@ -4,6 +4,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
 
 # Node.js
 node_modules/
@@ -25,8 +26,5 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 
-# Secrets
-.env
-
-SESSION_SECRET_KEY=replace-with-a-long-random-secret
-OTHELLO_DB_PATH=data/othello.db
+# Keep example configuration
+!.env.example
