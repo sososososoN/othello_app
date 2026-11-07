@@ -168,7 +168,7 @@ async function finishCpuTurn(state) {
   if (analysisCheckbox.checked) {
     try {
       // まず既存の解析APIから候補手の評価を取得
-      const analysis = await requestJson("/analysis?depth=1");
+      const analysis = await requestJson("/analysis");
 
       // 右側の解析結果と盤面上の評価値を描画
       renderAnalysis(analysis);
