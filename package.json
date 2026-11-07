@@ -2,9 +2,6 @@
   "name": "othello",
   "version": "1.0.0",
   "description": "FastAPIとJavaScriptで開発したWeb版オセロゲーム",
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
