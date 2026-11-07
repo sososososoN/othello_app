@@ -10,6 +10,7 @@ const analysisCheckbox = document.getElementById("analysis-enabled");
 const analysisPanel = document.getElementById("analysis-panel");
 const analysisContent = document.getElementById("analysis-content");
 const gameLayout = document.getElementById("game-layout");
+const cpuContinueButton = document.getElementById("cpu-continue-button");
 
 // ゲーム中の画面側の状態
 let gameStarted = false;
@@ -17,6 +18,7 @@ let isLoading = false;
 let currentTurn = 1;
 let currentMode = "pvp";
 let currentDifficulty = "normal";
+let pendingCpuTurn = false;
 
 async function requestJson(url, method = "GET", body = null) {
   const options = { method };
@@ -64,9 +66,13 @@ function updateControls() {
   modeElement.disabled = gameStarted;
   difficultyElement.disabled = gameStarted || currentMode !== "pvc";
   difficultyElement.value = currentDifficulty;
-  analysisCheckbox.disabled = isLoading || currentMode !== "pvc";
+  analysisCheckbox.disabled =
+    isLoading || pendingCpuTurn || currentMode !== "pvc";
 
   updateAnalysisLayout();
+
+  cpuContinueButton.hidden = !pendingCpuTurn;
+  cpuContinueButton.disabled = isLoading;
 }
 
 function drawBoard(state) {
@@ -147,7 +153,10 @@ async function finishCpuTurn(state) {
     try {
       const analysis = await requestJson("/analysis?depth=1");
       renderAnalysis(analysis);
-      await waitForPaint();
+      pendingCpuTurn = true;
+      updateControls();
+      infoElement.textContent = "CPUの解析結果を確認してください";
+      return;
     } catch (error) {
       console.error("CPU analysis failed", error);
       clearAnalysis();
@@ -156,6 +165,25 @@ async function finishCpuTurn(state) {
 
   const cpuState = await requestJson("/moves/cpu", "POST", {});
   drawBoard(cpuState);
+}
+
+async function continueCpuTurn() {
+  // 着手待ちでない場合や通信中は何もしない
+  if (!pendingCpuTurn || isLoading) return;
+
+  await runRequest(async () => {
+    // CPUの着手をAPIに依頼
+    const state = await requestJson("/moves/cpu", "POST", {});
+
+    // 正常終了した場合のみ待機状態を解除
+    pendingCpuTurn = false;
+
+    // CPU着手後の盤面を表示
+    drawBoard(state);
+
+    // ボタンを非表示に戻す
+    updateControls();
+  });
 }
 
 async function sendMove(y, x) {
@@ -234,8 +262,19 @@ async function changeDifficulty() {
 }
 
 function clearAnalysis() {
+  pendingCpuTurn = false;
+
+  document.querySelectorAll(".analysis-score").forEach((element) => {
+    element.remove();
+  });
+
+  document.querySelectorAll(".analysis-best").forEach((element) => {
+    element.classList.remove("analysis-best");
+  });
+
   analysisContent.replaceChildren();
-  updateAnalysisLayout();
+
+  updateControls();
 }
 
 function renderAnalysis(analysis) {
@@ -268,6 +307,7 @@ function renderAnalysis(analysis) {
 
   analysisContent.appendChild(list);
   analysisPanel.hidden = false;
+  paintAnalysisScores(analysis);
 }
 
 function updateAnalysisLayout() {
@@ -286,6 +326,52 @@ function updateAnalysisLayout() {
       "CPUが着手すると、ここに解析結果を表示します。";
   }
 }
+
+function paintAnalysisScores(analysis) {
+  document.querySelectorAll(".analysis-score").forEach((element) => {
+    element.remove();
+  });
+  document.querySelectorAll(".analysis-best").forEach((element) => {
+    element.classList.remove("analysis-best");
+  });
+
+  const cells = boardElement.querySelectorAll(".cell");
+
+  for (const candidate of analysis.candidates) {
+    const [y, x] = candidate.move;
+    const index = y * 8 + x;
+    if (
+      !Number.isInteger(y) ||
+      !Number.isInteger(x) ||
+      y < 0 ||
+      y >= 8 ||
+      x < 0 ||
+      x >= 8
+    ) {
+      continue;
+    }
+    const cell = cells[index];
+    if (!cell || cell.querySelector(".stone")) {
+      continue;
+    }
+    const score = document.createElement("span");
+    score.className = "analysis-score";
+    score.textContent = String(candidate.total_score);
+    const isBest =
+      analysis.best_move !== null &&
+      y === analysis.best_move[0] &&
+      x === analysis.best_move[1];
+    if (isBest) {
+      cell.classList.add("analysis-best");
+      score.setAttribute("aria-label", "CPUの最善手");
+    }
+    cell.appendChild(score);
+  }
+}
+
+cpuContinueButton.addEventListener("click", () => {
+  void continueCpuTurn();
+});
 
 modeElement.addEventListener("change", () => {
   void changeMode();
