@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 
 import {
+  getAnalysis,
   getGameState,
   playCpuMove,
   playHumanMove,
   resetGame,
   startGame,
 } from "@/api/client";
+
+import { AnalysisPanel } from "@/components/game/AnalysisPanel";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GameBoard } from "@/components/game/GameBoard";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,7 @@ import {
 } from "@/components/ui/card";
 
 import type {
+  AnalysisResult,
   Difficulty,
   GameMode,
   GameState,
@@ -49,6 +53,7 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const busyRef = useRef(false);
   useEffect(() => {
     let active = true;
@@ -93,6 +98,15 @@ function App() {
       setBusy(false);
     }
   }
+  async function executeCpuTurn(): Promise<void> {
+    setStatus("CPUが解析しています...");
+    const result = await getAnalysis();
+    setAnalysis(result);
+    setStatus("CPUが着手しています...");
+    const next = await playCpuMove(result.analysis_token ?? undefined);
+    setGame(next);
+    setStatus(getTurnLabel(next));
+  }
   async function handleStart(): Promise<void> {
     await runAction(async () => {
       setStatus("対局を開始しています...");
@@ -101,6 +115,7 @@ function App() {
         difficulty,
         human_order: mode === "pvp" ? "first" : humanOrder,
       });
+      setAnalysis(null);
       setGame(next);
       setStatus(getTurnLabel(next));
     });
@@ -121,10 +136,7 @@ function App() {
         afterHuman.turn !== 0 &&
         afterHuman.turn === afterHuman.cpu_color
       ) {
-        setStatus("CPUが考えています");
-        const afterCpu = await playCpuMove();
-        setGame(afterCpu);
-        setStatus(getTurnLabel(afterCpu));
+        await executeCpuTurn();
       } else {
         setStatus(getTurnLabel(afterHuman));
       }
@@ -140,16 +152,14 @@ function App() {
       return;
     }
     await runAction(async () => {
-      setStatus("CPUが考えています...");
-      const next = await playCpuMove();
-      setGame(next);
-      setStatus(getTurnLabel(next));
+      await executeCpuTurn();
     });
   }
   async function handleReset(): Promise<void> {
     await runAction(async () => {
       setStatus("リセットしています...");
       const next = await resetGame();
+      setAnalysis(null);
       setGame(next);
       setMode(next.mode);
       setDifficulty(next.difficulty);
@@ -187,7 +197,7 @@ function App() {
           <CardHeader>
             <CardTitle>対局設定</CardTitle>
             <CardDescription>
-              モード・難易度・先攻後攻をせんたくしてください。
+              モード・難易度・先攻後攻を選択してください。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -320,6 +330,7 @@ function App() {
             )}
           </CardContent>
         </Card>
+        {analysis && game?.mode === "pvc" && <AnalysisPanel analysis={analysis} />}
       </div>
     </AppLayout>
   );
