@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import App from "./App";
 import {
+  getAnalysis,
   getGameState,
   playCpuMove,
   playHumanMove,
@@ -11,10 +12,10 @@ import {
   startGame,
 } from "@/api/client";
 
-import type { GameState } from "@/types/game";
+import type { AnalysisResult, GameState } from "@/types/game";
 
-// 追加：実際の通信を実行しないようにする
 vi.mock("@/api/client", () => ({
+  getAnalysis: vi.fn(),
   getGameState: vi.fn(),
   playCpuMove: vi.fn(),
   playHumanMove: vi.fn(),
@@ -48,7 +49,30 @@ const initialState: GameState = {
   ],
 };
 
-// 各テスト前にモックをリセット
+const mockAnalysis: AnalysisResult = {
+  best_move: [2, 2],
+  score: 12,
+  depth: 1,
+  nodes_visited: 25,
+  cutoffs: 3,
+  elapsed_ms: 4.5,
+  candidates: [
+    {
+      move: [2, 2],
+      minimax_score: 16,
+      penalty: 2,
+      total_score: 12,
+    },
+    {
+      move: [2, 4],
+      minimax_score: 10,
+      penalty: 1,
+      total_score: 8,
+    },
+  ],
+  analysis_token: "signed-test-token",
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
 
@@ -57,6 +81,7 @@ beforeEach(() => {
   vi.mocked(resetGame).mockResolvedValue(initialState);
   vi.mocked(playHumanMove).mockResolvedValue(initialState);
   vi.mocked(playCpuMove).mockResolvedValue(initialState);
+  vi.mocked(getAnalysis).mockResolvedValue(mockAnalysis);
 });
 
 describe("App", () => {
@@ -146,8 +171,8 @@ describe("App", () => {
     );
 
     await waitFor(() => {
-      expect(playHumanMove).toHaveBeenCalledTimes(1);
-      expect(playCpuMove).toHaveBeenCalledTimes(1);
+      expect(getAnalysis).toHaveBeenCalledTimes(1);
+      expect(playCpuMove).toHaveBeenCalledWith("signed-test-token");
     });
   });
 
@@ -219,5 +244,127 @@ describe("App", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "サーバーに接続できませんでした",
     );
+  });
+  it("CPU解析結果を画面に表示する", async () => {
+    const user = userEvent.setup();
+
+    const pvcState: GameState = {
+      ...initialState,
+      mode: "pvc",
+      cpu_color: 2,
+    };
+
+    const cpuTurnState: GameState = {
+      ...pvcState,
+      turn: 2,
+    };
+
+    vi.mocked(getGameState).mockResolvedValue(pvcState);
+    vi.mocked(playHumanMove).mockResolvedValue(cpuTurnState);
+    vi.mocked(playCpuMove).mockResolvedValue(pvcState);
+
+    render(<App />);
+
+    await screen.findAllByRole("gridcell");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /3行4列/,
+      }),
+    );
+
+    expect(await screen.findByText("CPUの思考解析")).toBeInTheDocument();
+
+    // (2, 2) = C3
+    expect(screen.getByText("C3", { exact: true })).toBeInTheDocument();
+
+    expect(screen.getByText("候補手の比較")).toBeInTheDocument();
+
+    expect(screen.getByText("25")).toBeInTheDocument();
+  });
+
+  // 追加：解析後にリセットしたときの表示確認
+  it("リセット後に解析結果が消える", async () => {
+    const user = userEvent.setup();
+
+    const pvcState: GameState = {
+      ...initialState,
+      mode: "pvc",
+      cpu_color: 2,
+    };
+
+    const cpuTurnState: GameState = {
+      ...pvcState,
+      turn: 2,
+    };
+
+    vi.mocked(getGameState).mockResolvedValue(pvcState);
+    vi.mocked(playHumanMove).mockResolvedValue(cpuTurnState);
+    vi.mocked(playCpuMove).mockResolvedValue(pvcState);
+    vi.mocked(resetGame).mockResolvedValue(pvcState);
+
+    render(<App />);
+
+    await screen.findAllByRole("gridcell");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /3行4列/,
+      }),
+    );
+
+    expect(await screen.findByText("CPUの思考解析")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "リセット",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText("CPUの思考解析")).not.toBeInTheDocument();
+    });
+  });
+
+  // 追加：CPU解析に失敗した場合の確認
+  it("解析失敗時にCPU着手せずエラーを表示する", async () => {
+    const user = userEvent.setup();
+
+    const pvcState: GameState = {
+      ...initialState,
+      mode: "pvc",
+      cpu_color: 2,
+    };
+
+    const cpuTurnState: GameState = {
+      ...pvcState,
+      turn: 2,
+    };
+
+    vi.mocked(getGameState).mockResolvedValue(pvcState);
+    vi.mocked(playHumanMove).mockResolvedValue(cpuTurnState);
+
+    vi.mocked(getAnalysis).mockRejectedValue(new Error("解析に失敗しました"));
+
+    render(<App />);
+
+    await screen.findAllByRole("gridcell");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /3行4列/,
+      }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("解析に失敗しました");
+
+    expect(playCpuMove).not.toHaveBeenCalled();
+
+    // CPUの番が残るため、ユーザーが再実行できる
+    expect(
+      screen.getByRole("button", {
+        name: "CPUの着手を実行",
+      }),
+    ).toBeInTheDocument();
   });
 });
