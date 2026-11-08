@@ -1,3 +1,4 @@
+import { useState } from "react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GameBoard } from "@/components/game/GameBoard";
@@ -32,7 +33,15 @@ const initialValidMoves: Position[] = [
   [5, 4],
 ];
 
+function formatPosition([y, x]: Position): string {
+  const column = String.fromCharCode(65 + x);
+  return `${column}${y + 1}`;
+}
+
 function App() {
+
+  const [selectedMove, setSelectedMove] =
+  useState<Position | null>(null);
   return (
     <AppLayout>
       {/*
@@ -69,11 +78,21 @@ function App() {
           </CardHeader>
 
           {/* カード内部の盤面も中央揃え */}
-          <CardContent className="flex justify-center">
+          <CardContent className="flex flex-col items-center gap-5">
             <GameBoard
               board={initialBoard}
               validMoves={initialValidMoves}
+              onSelectMove={setSelectedMove}
             />
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm text-muted-foreground"
+            >
+              {selectedMove
+                ? `選択したマス：${formatPosition(selectedMove)}`
+                : "点が表示されているマスを選択してください"}
+            </p>
           </CardContent>
         </Card>
       </div>
