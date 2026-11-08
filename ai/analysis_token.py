@@ -3,7 +3,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 import hashlib
 import json
 
-from game import Position, Board
+from game import BLACK, WHITE, Position, Board
 
 
 def board_fingerprint(board: Board) -> str:
@@ -22,6 +22,7 @@ class VerifiedAnalysisMove:
     depth: int
     move: Position
     board_hash: str
+    cpu_color: int
 
 
 class AnalysisTokenManager:
@@ -40,7 +41,10 @@ class AnalysisTokenManager:
         difficulty: str,
         depth: int,
         move: Position,
+        cpu_color: int,
     ) -> str:
+        if cpu_color not in (BLACK, WHITE):
+            raise ValueError("Invalid CPU color")
         return self._serializer.dumps(
             {
                 "game_id": game_id,
@@ -49,14 +53,15 @@ class AnalysisTokenManager:
                 "difficulty": difficulty,
                 "depth": depth,
                 "move": list(move),
+                "cpu_color": cpu_color,
             }
         )
 
     def verify(self, token: str) -> VerifiedAnalysisMove:
         try:
             data = self._serializer.loads(token, max_age=600)
-        except BadSignature:
-            raise ValueError("Invalid or expired analysis token")
+        except BadSignature as exc:
+            raise ValueError("Invalid or expired analysis token") from exc
         if not isinstance(data, dict):
             raise ValueError("Invalid analysis token payload")
         game_id = data.get("game_id")
@@ -65,6 +70,7 @@ class AnalysisTokenManager:
         difficulty = data.get("difficulty")
         depth = data.get("depth")
         move = data.get("move")
+        cpu_color = data.get("cpu_color")
 
         if (
             not isinstance(game_id, str)
@@ -81,6 +87,8 @@ class AnalysisTokenManager:
             or not isinstance(move, list)
             or len(move) != 2
             or any(type(n) is not int or not 0 <= n < 8 for n in move)
+            or type(cpu_color) is not int
+            or cpu_color not in (BLACK, WHITE)
         ):
             raise ValueError("Invalid analysis token payload")
 
@@ -91,4 +99,5 @@ class AnalysisTokenManager:
             difficulty=difficulty,
             depth=depth,
             move=(move[0], move[1]),
+            cpu_color=cpu_color,
         )
