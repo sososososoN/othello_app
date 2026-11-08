@@ -55,12 +55,16 @@ def _select_best_move(
     depth: int,
     stats: SearchStats | None = None,
     candidates: list[MoveEvaluation] | None = None,
+    player: int = WHITE,
 ) -> tuple[Position | None, int | None]:
     """最善手を選択し、必要に応じて候補手の解析情報を収集する。"""
 
+    if player not in (BLACK, WHITE):
+        raise ValueError("Invalid CPU player")
+
     moves = order_moves(
-        get_valid_moves(board, WHITE),
-        WHITE,
+        get_valid_moves(board, player),
+        player,
     )
 
     if not moves:
@@ -70,19 +74,25 @@ def _select_best_move(
     best_score = -inf
 
     for y, x in moves:
-        flippable = get_flippable_stones(board, y, x, WHITE)
+        flippable = get_flippable_stones(
+            board,
+            y,
+            x,
+            player,
+        )
 
         penalty = sum(count_adjacent_empty_cells(board, fy, fx) for fy, fx in flippable)
 
-        next_board = apply_move(board, y, x, WHITE)
+        next_board = apply_move(board, y, x, player)
 
         score = minimax(
             next_board,
             depth,
             -inf,
             inf,
-            BLACK,
+            3 - player,
             stats=stats,
+            maximizing_player=player,
         )
 
         total_score = score - penalty * 2
@@ -107,27 +117,30 @@ def _select_best_move(
 
 
 def choose_cpu_move(
-    board: Board,
-    depth: int | None = None,
+    board: Board, depth: int | None = None, player: int = WHITE
 ) -> Position | None:
     """通常対戦用。CPUの最善手だけを返す。"""
     # 既存仕様：合法手がなければ深さの検証前にNoneを返す
-    if not get_valid_moves(board, WHITE):
+    if player not in (BLACK, WHITE):
+        raise ValueError("Invalid CPU player")
+
+    if not get_valid_moves(board, player):
         return None
 
     resolved_depth = _resolve_depth(board, depth)
-    best_move, _ = _select_best_move(
-        board,
-        resolved_depth,
-    )
+    best_move, _ = _select_best_move(board, resolved_depth, player=player)
     return best_move
 
 
 def analyze_cpu_move(
     board: Board,
     depth: int | None = None,
+    player: int = WHITE,
 ) -> SearchResult:
     """最善手・探索統計・候補手ごとの評価結果を返す。"""
+
+    if player not in (BLACK, WHITE):
+        raise ValueError("Invalid CPU player")
 
     start = perf_counter()
     resolved_depth = _resolve_depth(board, depth)
@@ -144,6 +157,7 @@ def analyze_cpu_move(
         resolved_depth,
         stats=stats,
         candidates=candidates,
+        player=player,
     )
 
     return SearchResult(
