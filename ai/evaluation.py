@@ -15,7 +15,12 @@ WEIGHTS = (
 WIN_SCORE = 100_000
 
 
-def evaluate_board(board: Board) -> int:
+def evaluate_board(
+    board: Board,
+    perspective: int = WHITE,
+) -> int:
+    if perspective not in (BLACK, WHITE):
+        raise ValueError("Invalid perspective")
     """CPU（白）の視点から盤面を評価する。"""
     black = sum(row.count(BLACK) for row in board)
     white = sum(row.count(WHITE) for row in board)
@@ -27,17 +32,20 @@ def evaluate_board(board: Board) -> int:
     if not black_moves and not white_moves:
         difference = white - black
         if difference > 0:
-            return WIN_SCORE + difference
-        if difference < 0:
-            return -WIN_SCORE + difference
-        return 0
+            score = WIN_SCORE + difference
+        elif difference < 0:
+            score = -WIN_SCORE + difference
+        else:
+            score = 0
+        return score if perspective == WHITE else -score
 
     stone_count = black + white
 
     # 終盤は石数差を評価
     if stone_count > 54:
-        return white - black
+        score = white - black
 
+        return score if perspective == WHITE else -score
     # マスごとの位置評価
     position_score = 0
 
@@ -66,4 +74,5 @@ def evaluate_board(board: Board) -> int:
         elif board[y][x] == BLACK:
             corner_score -= 1
 
-    return position_score + mobility_score * 5 + corner_score * 25
+    score = position_score + mobility_score * 5 + corner_score * 25
+    return score if perspective == WHITE else -score

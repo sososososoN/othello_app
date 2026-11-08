@@ -55,6 +55,7 @@ def minimax(
     beta: float,
     player: int,
     stats: SearchStats | None = None,
+    maximizing_player: int = WHITE,
 ) -> int:
     """αβ枝刈りを用いて局面のMinimax評価値を返す。"""
     if stats is not None:
@@ -63,11 +64,17 @@ def minimax(
     if player not in (BLACK, WHITE):
         raise ValueError("Invalid player")
 
+    if maximizing_player not in (BLACK, WHITE):
+        raise ValueError("Invalid maximizing player")
+
     if depth < 0:
         raise ValueError("Depth must be non-negative")
 
     if depth == 0:
-        return evaluate_board(board)
+        return evaluate_board(
+            board,
+            perspective=maximizing_player,
+        )
 
     moves = order_moves(
         get_valid_moves(board, player),
@@ -80,16 +87,35 @@ def minimax(
         opponent_moves = get_valid_moves(board, opponent)
 
         if not opponent_moves:
-            return evaluate_board(board)
+            return evaluate_board(
+                board,
+                perspective=maximizing_player,
+            )
 
-        return minimax(board, depth - 1, alpha, beta, opponent, stats=stats)
+        return minimax(
+            board,
+            depth - 1,
+            alpha,
+            beta,
+            opponent,
+            stats=stats,
+            maximizing_player=maximizing_player,
+        )
 
-    if player == WHITE:
+    if player == maximizing_player:
         best = -inf
 
         for y, x in moves:
             next_board = apply_move(board, y, x, player)
-            value = minimax(next_board, depth - 1, alpha, beta, opponent, stats=stats)
+            value = minimax(
+                next_board,
+                depth - 1,
+                alpha,
+                beta,
+                opponent,
+                stats=stats,
+                maximizing_player=maximizing_player,
+            )
 
             best = max(best, value)
             alpha = max(alpha, best)
@@ -105,7 +131,15 @@ def minimax(
 
     for y, x in moves:
         next_board = apply_move(board, y, x, player)
-        value = minimax(next_board, depth - 1, alpha, beta, opponent, stats=stats)
+        value = minimax(
+            next_board,
+            depth - 1,
+            alpha,
+            beta,
+            opponent,
+            stats=stats,
+            maximizing_player=maximizing_player,
+        )
 
         best = min(best, value)
         beta = min(beta, best)
