@@ -39,9 +39,7 @@ function formatPosition([y, x]: Position): string {
 }
 
 function App() {
-
-  const [selectedMove, setSelectedMove] =
-  useState<Position | null>(null);
+  const [selectedMove, setSelectedMove] = useState<Position | null>(null);
   return (
     <AppLayout>
       {/*
@@ -54,9 +52,7 @@ function App() {
       <div className="mx-auto w-full max-w-2xl">
         {/* タイトル部分 */}
         <section className="mb-8 text-center">
-          <p className="text-sm font-medium text-primary">
-            PLAY AGAINST AI
-          </p>
+          <p className="text-sm font-medium text-primary">PLAY AGAINST AI</p>
 
           <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
             オセロをプレイ
@@ -72,9 +68,7 @@ function App() {
           <CardHeader className="text-center">
             <CardTitle>Game Board</CardTitle>
 
-            <CardDescription>
-              初期盤面のプレビュー（API連携前）
-            </CardDescription>
+            <CardDescription>初期盤面のプレビュー（API連携前）</CardDescription>
           </CardHeader>
 
           {/* カード内部の盤面も中央揃え */}

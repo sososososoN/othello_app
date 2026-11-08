@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 import { AppHeader } from "./AppHeader";
 
@@ -27,9 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           画面が小さい場合も上下に余白を確保
       */}
       <main className="flex w-full flex-1 items-center justify-center px-4 py-8 sm:px-6">
-        <div className="w-full max-w-7xl">
-          {children}
-        </div>
+        <div className="w-full max-w-7xl">{children}</div>
       </main>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import type { Board, Cell, Position } from "@/types/game";
 
 // 親コンポーネントから受け取るデータの型
@@ -29,9 +28,7 @@ export function GameBoard({
 }: GameBoardProps) {
   // 合法手をSetに変換して検索しやすくする。
   // 例: [2, 3] → "2,3"
-  const validMoveKeys = new Set(
-    validMoves.map(([y, x]) => `${y},${x}`),
-  );
+  const validMoveKeys = new Set(validMoves.map(([y, x]) => `${y},${x}`));
 
   return (
     <div
@@ -44,8 +41,7 @@ export function GameBoard({
     >
       {board.map((row, y) =>
         row.map((cell, x) => {
-          const isValidMove =
-            cell === 0 && validMoveKeys.has(`${y},${x}`);
+          const isValidMove = cell === 0 && validMoveKeys.has(`${y},${x}`);
 
           const label = `${y + 1}行${x + 1}列: ${
             isValidMove ? "合法手" : getStoneName(cell)
@@ -57,7 +53,7 @@ export function GameBoard({
               role="gridcell"
               aria-rowindex={y + 1}
               aria-colindex={x + 1}
-              
+
               className="flex aspect-square items-center justify-center bg-board"
             >
               {/* 黒石・白石を円形で表示 */}
@@ -86,10 +82,7 @@ export function GameBoard({
                   />
                 </button>
               ) : (
-                <span
-                  aria-label={label}
-                  className="block size-full"
-                />
+                <span aria-label={label} className="block size-full" />
               )}
             </div>
           );
