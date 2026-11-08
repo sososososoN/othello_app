@@ -14,6 +14,7 @@ from schemas import (
     MoveRequest,
     ModeRequest,
     DifficultyRequest,
+    StartGameRequest,
     GameStateResponse,
     AnalysisResponse,
     MoveEvaluationResponse,
@@ -22,7 +23,6 @@ from schemas import (
 from learning.articles import get_article, list_articles, render_article
 from ai.engine import DIFFICULTY_DEPTH, analyze_cpu_move
 from ai.analysis_token import AnalysisTokenManager, board_fingerprint
-from game import WHITE
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -109,6 +109,19 @@ def create_move(request: Request, data: MoveRequest):
     return service.play(data.y, data.x)
 
 
+@app.post("/games/start", response_model=GameStateResponse)
+def start_game(
+    request: Request,
+    data: StartGameRequest,
+):
+    service = GameService(get_game(request))
+    return service.start_game(
+        mode=data.mode,
+        difficulty=data.difficulty,
+        human_order=data.human_order,
+    )
+
+
 @app.post("/moves/player", response_model=GameStateResponse)
 def create_player_move(
     request: Request,
@@ -138,14 +151,16 @@ def create_cpu_move(
 
     with record.lock:
         game_id = request.session.get("game_id")
+        cpu_color = 3 - record.human_color
         if (
             verified.game_id != game_id
             or verified.board_hash != board_fingerprint(record.game.board)
             or verified.version != record.version
             or verified.difficulty != record.difficulty
             or verified.depth != DIFFICULTY_DEPTH[record.difficulty]
+            or verified.cpu_color != cpu_color
             or record.mode != "pvc"
-            or record.game.turn != WHITE
+            or record.game.turn != cpu_color
         ):
             raise HTTPException(
                 status_code=409,
@@ -169,7 +184,8 @@ def get_analysis(
                 status_code=409,
                 detail="Analysis requires PvC mode",
             )
-        if record.game.turn != WHITE:
+        cpu_color = 3 - record.human_color
+        if record.game.turn != cpu_color:
             raise HTTPException(
                 status_code=409,
                 detail="It is not CPU's turn",
@@ -183,6 +199,7 @@ def get_analysis(
     result = analyze_cpu_move(
         board,
         depth=selected_depth,
+        player=cpu_color,
     )
     token = None
 
@@ -197,6 +214,7 @@ def get_analysis(
                 difficulty=difficulty,
                 depth=selected_depth,
                 move=result.best_move,
+                cpu_color=cpu_color,
             )
 
     return AnalysisResponse(

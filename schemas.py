@@ -5,6 +5,10 @@ GameMode = Literal["pvp", "pvc"]
 
 Difficulty = Literal["easy", "normal", "hard"]
 
+HumanOrder = Literal["first", "second", "random"]
+
+PlayerColor = Literal[1, 2]
+
 Cell = Literal[0, 1, 2]
 
 Coordinate = Annotated[
@@ -41,12 +45,20 @@ class DifficultyRequest(BaseModel):
     difficulty: Difficulty
 
 
+class StartGameRequest(BaseModel):
+    mode: GameMode
+    difficulty: Difficulty = "normal"
+    human_order: HumanOrder = "first"
+
+
 class GameStateResponse(BaseModel):
     board: BoardSchema
     turn: Literal[0, 1, 2]
     message: str
     mode: GameMode
     difficulty: Difficulty
+    human_color: PlayerColor = 1
+    cpu_color: PlayerColor | None = None
     valid_moves: list[ValidMove]
 
 
