@@ -1,10 +1,6 @@
-
 {
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   // @/components のようなインポートをsrc配下に解決する
   "compilerOptions": {
     "paths": {

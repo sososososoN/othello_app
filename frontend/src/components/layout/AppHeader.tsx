@@ -1,4 +1,3 @@
-
 import { BrainCircuit, BookOpen, Gamepad2 } from "lucide-react";
 
 export function AppHeader() {
@@ -14,9 +13,7 @@ export function AppHeader() {
 
           <div>
             <p className="font-semibold tracking-tight">Othello AI Lab</p>
-            <p className="text-xs text-muted-foreground">
-              AI GAME & LEARNING
-            </p>
+            <p className="text-xs text-muted-foreground">AI GAME & LEARNING</p>
           </div>
         </div>
 
