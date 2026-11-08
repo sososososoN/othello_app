@@ -13,4 +13,15 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      "/state": "http://127.0.0.1.8000",
+      "/games": "http://127.0.0.1.8000",
+      "/moves": "http://127.0.0.1.8000",
+      "/reset": "http://127.0.0.1.8000",
+      "/analysis": "http://127.0.0.1.8000",
+      "/mode": "http://127.0.0.1.8000",
+      "/difficulty": "http://127.0.0.1.8000",
+    },
+  },
 });
