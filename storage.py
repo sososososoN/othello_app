@@ -8,7 +8,8 @@ from pathlib import Path
 from threading import RLock
 from uuid import uuid4
 from weakref import WeakValueDictionary
-from game import Game
+
+from game import BLACK, Game
 
 
 class ConcurrentUpdateError(RuntimeError):
@@ -20,6 +21,7 @@ class GameRecord:
     game: Game = field(default_factory=Game)
     mode: str = "pvp"
     difficulty: str = "normal"
+    human_color: int = BLACK
     version: int = 0
     lock: RLock = field(default_factory=RLock)
     save_callback: Callable[[], None] | None = field(
@@ -99,6 +101,8 @@ class SQLiteGameStore:
                     message TEXT NOT NULL,
                     difficulty TEXT NOT NULL DEFAULT 'normal'
                         CHECK (difficulty IN ('easy', 'normal', 'hard')),
+                    human_color INTEGER NOT NULL DEFAULT 1
+                        CHECK (human_color IN (1, 2)),
                     version INTEGER NOT NULL DEFAULT 0
                 )
                 """
@@ -127,6 +131,15 @@ class SQLiteGameStore:
                     """
                 )
 
+            if "human_color" not in columns:
+                connection.execute(
+                    """
+                    ALTER TABLE games
+                    ADD COLUMN human_color INTEGER NOT NULL DEFAULT 1
+                    CHECK (human_color IN (1, 2))
+                    """
+                )
+
     def _bind(self, game_id: str, record: GameRecord) -> None:
         record.save_callback = lambda: self._save(
             game_id,
@@ -145,6 +158,7 @@ class SQLiteGameStore:
                         mode = ?,
                         message = ?,
                         difficulty = ?,
+                        human_color = ?,
                         version = version + 1
                     WHERE game_id = ? AND version = ?
                     """,
@@ -170,9 +184,9 @@ class SQLiteGameStore:
                 connection.execute(
                     """
                     INSERT INTO games (
-                        game_id, board, turn, mode, message, difficulty
+                        game_id, board, turn, mode, message, difficulty, human_color
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (game_id, *self._record_values(record)),
                 )
@@ -192,7 +206,7 @@ class SQLiteGameStore:
             with self._connection() as connection:
                 row = connection.execute(
                     """
-                    SELECT board, turn, mode, message, difficulty, version
+                    SELECT board, turn, mode, message, difficulty, human_color, version
                     FROM games
                     WHERE game_id = ?
                     """,
@@ -201,7 +215,7 @@ class SQLiteGameStore:
             if row is None:
                 self._records.pop(game_id, None)
                 return None
-            board, turn, mode, message, difficulty, version = row
+            board, turn, mode, message, difficulty, human_color, version = row
             if cached is not None and cached.version == version:
                 return cached
             record = GameRecord(
@@ -212,6 +226,7 @@ class SQLiteGameStore:
                 ),
                 mode=mode,
                 difficulty=difficulty,
+                human_color=human_color,
                 version=version,
             )
             self._bind(game_id, record)
@@ -236,7 +251,9 @@ class SQLiteGameStore:
             return row[0]
 
     @staticmethod
-    def _record_values(record: GameRecord) -> tuple[str, int, str, str, str]:
+    def _record_values(
+        record: GameRecord,
+    ) -> tuple[str, int, str, str, str, int]:
         game = record.game
         return (
             json.dumps(game.board),
@@ -244,4 +261,5 @@ class SQLiteGameStore:
             record.mode,
             game.message,
             record.difficulty,
+            record.human_color,
         )
