@@ -47,9 +47,9 @@ if max_concurrent < 1:
     raise RuntimeError("ANALYSIS_MAX_CONCURRENT must be a positive integer")
 analysis_slots = BoundedSemaphore(max_concurrent)
 
-cookie_secure_value = os.environ.get("SESSION_COKKIE_SECURE", "false").lower()
+cookie_secure_value = os.environ.get("SESSION_COOKIE_SECURE", "false").lower()
 if cookie_secure_value not in ("true", "false"):
-    raise RuntimeError("SESSION_COKKIE_SECURE must be true or false")
+    raise RuntimeError("SESSION_COOKIE_SECURE must be true or false")
 cookie_secure = cookie_secure_value == "true"
 
 app.add_middleware(
