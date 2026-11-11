@@ -28,3 +28,10 @@ data/*.db-wal
 
 # Keep example configuration
 !.env.example
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+
+# E2E dedicated database
+data/othello-e2e.db*
