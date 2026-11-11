@@ -22,6 +22,7 @@ class GameRecord:
     mode: str = "pvp"
     difficulty: str = "normal"
     human_color: int = BLACK
+    started: bool = False
     version: int = 0
     lock: RLock = field(default_factory=RLock)
     save_callback: Callable[[], None] | None = field(
@@ -103,6 +104,8 @@ class SQLiteGameStore:
                         CHECK (difficulty IN ('easy', 'normal', 'hard')),
                     human_color INTEGER NOT NULL DEFAULT 1
                         CHECK (human_color IN (1, 2)),
+                    started INTEGER NOT NULL DEFAULT 0
+                        CHECK (started IN (0, 1)),
                     version INTEGER NOT NULL DEFAULT 0
                 )
                 """
@@ -140,6 +143,28 @@ class SQLiteGameStore:
                     """
                 )
 
+            if "started" not in columns:
+                connection.execute(
+                    """
+                    ALTER TABLE games
+                    ADD COLUMN started INTEGER NOT NULL DEFAULT 0
+                    CHECK (started IN (0, 1))
+                    """
+                )
+
+            from backend.game import create_board
+
+            rows = connection.execute(
+                "SELECT game_id, board, turn FROM games"
+            ).fetchall()
+            for game_id, board_json, turn in rows:
+                board = json.loads(board_json)
+                if board != create_board() or turn == 0:
+                    connection.execute(
+                        "UPDATE games SET started = 1 WHERE game_id = ?",
+                        (game_id,),
+                    )
+
     def _bind(self, game_id: str, record: GameRecord) -> None:
         record.save_callback = lambda: self._save(
             game_id,
@@ -159,6 +184,7 @@ class SQLiteGameStore:
                         message = ?,
                         difficulty = ?,
                         human_color = ?,
+                        started = ?,
                         version = version + 1
                     WHERE game_id = ? AND version = ?
                     """,
@@ -184,9 +210,9 @@ class SQLiteGameStore:
                 connection.execute(
                     """
                     INSERT INTO games (
-                        game_id, board, turn, mode, message, difficulty, human_color
+                        game_id, board, turn, mode, message, difficulty, human_color, started
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (game_id, *self._record_values(record)),
                 )
@@ -206,7 +232,7 @@ class SQLiteGameStore:
             with self._connection() as connection:
                 row = connection.execute(
                     """
-                    SELECT board, turn, mode, message, difficulty, human_color, version
+                    SELECT board, turn, mode, message, difficulty, human_color, started, version
                     FROM games
                     WHERE game_id = ?
                     """,
@@ -215,7 +241,7 @@ class SQLiteGameStore:
             if row is None:
                 self._records.pop(game_id, None)
                 return None
-            board, turn, mode, message, difficulty, human_color, version = row
+            board, turn, mode, message, difficulty, human_color, started, version = row
             if cached is not None and cached.version == version:
                 return cached
             record = GameRecord(
@@ -227,6 +253,7 @@ class SQLiteGameStore:
                 mode=mode,
                 difficulty=difficulty,
                 human_color=human_color,
+                started=bool(started),
                 version=version,
             )
             self._bind(game_id, record)
@@ -253,7 +280,7 @@ class SQLiteGameStore:
     @staticmethod
     def _record_values(
         record: GameRecord,
-    ) -> tuple[str, int, str, str, str, int]:
+    ) -> tuple[str, int, str, str, str, int, int]:
         game = record.game
         return (
             json.dumps(game.board),
@@ -262,4 +289,5 @@ class SQLiteGameStore:
             game.message,
             record.difficulty,
             record.human_color,
+            int(record.started),
         )

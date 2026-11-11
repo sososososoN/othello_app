@@ -39,6 +39,7 @@ export const gameStateSchema = z.object({
   difficulty: z.enum(["easy", "normal", "hard"]),
   human_color: playerColorSchema,
   cpu_color: playerColorSchema.nullable(),
+  started: z.boolean(),
   valid_moves: z.array(positionSchema),
 });
 

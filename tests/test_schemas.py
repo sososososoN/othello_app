@@ -15,6 +15,7 @@ def valid_state() -> dict:
         "message": game.message,
         "mode": "pvp",
         "difficulty": "normal",
+        "started": False,
         "valid_moves": [[y, x] for y, x in game.valid_moves()],
     }
 
@@ -124,6 +125,35 @@ def test_invalid_difficulty_in_game_state() -> None:
 def test_missing_difficulty_in_game_state() -> None:
     data = valid_state()
     del data["difficulty"]
+
+    with pytest.raises(ValidationError):
+        GameStateResponse.model_validate(data)
+
+
+def test_valid_started_state() -> None:
+    # FalseとTrueの両方が受け入れられることを確認
+    for started in (False, True):
+        data = valid_state()
+        data["started"] = started
+
+        state = GameStateResponse.model_validate(data)
+
+        assert state.started is started
+
+
+def test_missing_started_state() -> None:
+    # startedが欠けたレスポンスは不正
+    data = valid_state()
+    del data["started"]
+
+    with pytest.raises(ValidationError):
+        GameStateResponse.model_validate(data)
+
+
+def test_invalid_started_state() -> None:
+    # 真偽値でないデータは拒否する
+    data = valid_state()
+    data["started"] = "invalid"
 
     with pytest.raises(ValidationError):
         GameStateResponse.model_validate(data)

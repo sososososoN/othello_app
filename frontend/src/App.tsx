@@ -30,10 +30,6 @@ import type {
   Position,
 } from "@/types/game";
 
-// 追加：現在のタブで対局が開始されたことを記録するキー
-const STARTED_KEY = "othello-game-started";
-
-// 追加：プルダウンのデザインを統一
 const selectClassName =
   "h-10 w-full appearance-none rounded-lg border border-border " +
   "bg-background px-3 pr-10 text-sm font-medium text-foreground " +
@@ -43,33 +39,6 @@ const selectClassName =
   "focus-visible:ring-primary/40 " +
   "disabled:cursor-not-allowed disabled:bg-muted " +
   "disabled:text-muted-foreground disabled:opacity-70";
-
-// 追加：ストレージが利用できない環境でもエラーにしない
-function saveStarted(started: boolean): void {
-  try {
-    if (started) {
-      sessionStorage.setItem(STARTED_KEY, "true");
-    } else {
-      sessionStorage.removeItem(STARTED_KEY);
-    }
-  } catch {
-    // ストレージが利用できなくても対局は続行する
-  }
-}
-
-function readStarted(): boolean {
-  try {
-    return sessionStorage.getItem(STARTED_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-// 追加：盤面が初期状態より進んでいるかを確認
-function hasProgressed(game: GameState): boolean {
-  const stones = game.board.flat().filter((cell) => cell !== 0).length;
-  return stones > 4 || game.turn === 0;
-}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "予期しないエラーが発生しました";
@@ -93,10 +62,7 @@ function App() {
   const [mode, setMode] = useState<GameMode>("pvp");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [humanOrder, setHumanOrder] = useState<HumanOrder>("first");
-
-  // 追加：対局開始状態
   const [hasStarted, setHasStarted] = useState(false);
-  const startedRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -106,13 +72,6 @@ function App() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
   const busyRef = useRef(false);
-
-  // 追加：状態とストレージを同時に更新する
-  function updateStarted(started: boolean): void {
-    startedRef.current = started;
-    setHasStarted(started);
-    saveStarted(started);
-  }
 
   useEffect(() => {
     let active = true;
@@ -127,11 +86,7 @@ function App() {
         setMode(state.mode);
         setDifficulty(state.difficulty);
         setHumanOrder(state.human_color === 2 ? "second" : "first");
-
-        // 追加：再読み込み時に対局開始状態を復元
-        const started = readStarted() || hasProgressed(state);
-        startedRef.current = started;
-        setHasStarted(started);
+        setHasStarted(state.started);
 
         setStatus(getTurnLabel(state));
       } catch (cause: unknown) {
@@ -186,7 +141,7 @@ function App() {
 
   async function handleStart(): Promise<void> {
     // 追加：対局開始後の再開始は禁止
-    if (startedRef.current) return;
+    if (hasStarted) return;
 
     await runAction(async () => {
       setStatus("対局を開始しています...");
@@ -201,7 +156,7 @@ function App() {
       setGame(next);
 
       // 追加：APIが成功した場合のみロックする
-      updateStarted(true);
+      setHasStarted(true);
       setStatus(getTurnLabel(next));
     });
   }
@@ -218,9 +173,7 @@ function App() {
 
       const afterHuman = await playHumanMove({ y, x });
       setGame(afterHuman);
-
-      // 追加：開始ボタンを押さずに着手した場合も設定を固定
-      updateStarted(true);
+      setHasStarted(true);
 
       if (
         afterHuman.mode === "pvc" &&
@@ -262,12 +215,11 @@ function App() {
       setHumanOrder("first");
 
       // 追加：リセットが成功した場合のみ設定変更を解禁
-      updateStarted(false);
+      setHasStarted(next.started);
       setStatus("リセットしました。設定を変更できます。");
     });
   }
 
-  // 追加：設定が操作できる条件
   const settingsLocked = loading || busy || hasStarted;
 
   const canPlay =
