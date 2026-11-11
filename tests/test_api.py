@@ -7,10 +7,19 @@ from storage import SQLiteGameStore, GameRecord
 from game import BLACK, WHITE
 
 
-def test_index(client: TestClient) -> None:
+def test_index(client: TestClient, monkeypatch, tmp_path) -> None:
+    index_file = tmp_path / "index.html"
+    index_file.write_text(
+        "<!doctpe html><html><head><title>Othello AI Lab</title></head>"
+        '<body><div id="root"></div></body></html>',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(othello, "FRONTEND_DIST_DIR", tmp_path)
     response = client.get("/")
     assert response.status_code == 200
-    assert "オセロ" in response.text
+    assert "Othello AI Lab" in response.text
+    assert '<div id="root"></div>' in response.text
+    assert response.headers["content-type"].startswith("text/html")
 
 
 def test_static_files(client: TestClient) -> None:

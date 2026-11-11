@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, Request, HTTPException, Query
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -26,6 +26,8 @@ from ai.analysis_token import AnalysisTokenManager, board_fingerprint
 
 BASE_DIR = Path(__file__).resolve().parent
 
+FRONTEND_DIST_DIR = BASE_DIR / "frontend" / "dist"
+
 app = FastAPI(title="Othello API", version="1.0.0")
 
 session_secret_key = os.environ.get("SESSION_SECRET_KEY")
@@ -45,6 +47,15 @@ app.mount(
     "/static",
     StaticFiles(directory=BASE_DIR / "static"),
     name="static",
+)
+
+app.mount(
+    "/assets",
+    StaticFiles(
+        directory=FRONTEND_DIST_DIR / "assets",
+        check_dir=False,
+    ),
+    name="frontend-assets",
 )
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -94,7 +105,24 @@ def handle_concurrent_update(
 @app.get("/", include_in_schema=False)
 def index(request: Request):
     get_game(request)
-    return templates.TemplateResponse(request=request, name="index.html")
+    index_file = FRONTEND_DIST_DIR / "index.html"
+    if not index_file.is_file():
+        raise HTTPException(
+            status_code=503,
+            detail="React frontend has not been built. Run num run build in frontend/.",
+        )
+    return FileResponse(index_file, media_type="text/html")
+
+
+@app.get("/othello-icon.png", include_in_schema=False)
+def frontend_icon():
+    icon_file = FRONTEND_DIST_DIR / "othello-icon.png"
+    if not icon_file.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Frontend icon not found",
+        )
+    return FileResponse(icon_file, media_type="image/png")
 
 
 @app.get("/state", response_model=GameStateResponse)
