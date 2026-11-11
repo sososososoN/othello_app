@@ -63,3 +63,45 @@ def test_valid_session_secret_allows_startup(
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_secure_session_cookie(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    # このテスト専用のSQLiteデータベースを使用する
+    monkeypatch.setenv(
+        "OTHELLO_DB_PATH",
+        str(tmp_path / "secure-cookie.db"),
+    )
+
+    # 現在の環境変数名を使ってSecureを有効にする
+    monkeypatch.setenv("SESSION_COOKIE_SECURE", "true")
+
+    # import済みのアプリでは環境変数が反映されないため、
+    # 別プロセスで確認する
+    env = os.environ.copy()
+    env["SESSION_SECRET_KEY"] = "test-only-" + "a" * 40
+
+    script = """
+from fastapi.testclient import TestClient
+from backend.app import app
+
+with TestClient(app) as client:
+    response = client.get("/state")
+    assert response.status_code == 200
+    cookie = response.headers["set-cookie"]
+    assert "secure" in cookie.lower().split("; ")
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=PROJECT_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
