@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LockKeyhole } from "lucide-react";
 
 import {
+  ApiError,
   getAnalysis,
   getGameState,
   playCpuMove,
@@ -73,6 +74,16 @@ function App() {
 
   const busyRef = useRef(false);
 
+  function applyGameState(state: GameState): void {
+    setGame(state);
+    setMode(state.mode);
+    setDifficulty(state.difficulty);
+    setHumanOrder(state.human_color === 2 ? "second" : "first");
+    setHasStarted(state.started);
+    setAnalysis(null);
+    setStatus(getTurnLabel(state));
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -117,26 +128,41 @@ function App() {
     try {
       await action();
     } catch (cause: unknown) {
-      setError(getErrorMessage(cause));
+      if (cause instanceof ApiError && cause.status === 409) {
+        setAnalysis(null);
+        try {
+          const latest = await getGameState();
+          applyGameState(latest);
+          setError(
+            "別の操作によって対局状態が変わりました。最新の盤面を読み込みました。",
+          );
+        } catch (refreshError: unknown) {
+          setGame(null);
+          setStatus("対局状態を取得できませんでした。");
+          setError(`状態の再取得に失敗しました: ${getErrorMessage(refreshError)}`);
+        }
+      } else {
+        setStatus("操作に失敗しました。");
+        setError(getErrorMessage(cause));
+      }
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
   }
 
-  // 解析結果を再利用してCPUを着手させる
   async function executeCpuTurn(): Promise<void> {
     setStatus("CPUが解析しています...");
+    setAnalysis(null);
 
     const result = await getAnalysis();
-    setAnalysis(result);
 
     setStatus("CPUが着手しています...");
 
     const next = await playCpuMove(result.analysis_token ?? undefined);
 
-    setGame(next);
-    setStatus(getTurnLabel(next));
+    applyGameState(next);
+    setAnalysis(result);
   }
 
   async function handleStart(): Promise<void> {
@@ -152,12 +178,7 @@ function App() {
         human_order: mode === "pvp" ? "first" : humanOrder,
       });
 
-      setAnalysis(null);
-      setGame(next);
-
-      // 追加：APIが成功した場合のみロックする
-      setHasStarted(true);
-      setStatus(getTurnLabel(next));
+      applyGameState(next);
     });
   }
 
@@ -172,8 +193,7 @@ function App() {
       setStatus("着手しています...");
 
       const afterHuman = await playHumanMove({ y, x });
-      setGame(afterHuman);
-      setHasStarted(true);
+      applyGameState(afterHuman);
 
       if (
         afterHuman.mode === "pvc" &&
@@ -181,8 +201,6 @@ function App() {
         afterHuman.turn === afterHuman.cpu_color
       ) {
         await executeCpuTurn();
-      } else {
-        setStatus(getTurnLabel(afterHuman));
       }
     });
   }
@@ -208,15 +226,15 @@ function App() {
 
       const next = await resetGame();
 
-      setAnalysis(null);
-      setGame(next);
-      setMode(next.mode);
-      setDifficulty(next.difficulty);
-      setHumanOrder("first");
-
-      // 追加：リセットが成功した場合のみ設定変更を解禁
-      setHasStarted(next.started);
+      applyGameState(next);
       setStatus("リセットしました。設定を変更できます。");
+    });
+  }
+
+  async function handleRetryLoad(): Promise<void> {
+    await runAction(async () => {
+      const latest = await getGameState();
+      applyGameState(latest);
     });
   }
 
@@ -429,9 +447,21 @@ function App() {
               </p>
 
               {error && (
-                <p role="alert" className="text-sm text-destructive">
-                  {error}
-                </p>
+                <div className="space-y-2 text-center">
+                  <p role="alert" className="text-sm text-destructive">
+                    {error}
+                  </p>
+                  {!game && !loading && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => void handleRetryLoad()}
+                    >
+                      再度読み込み
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import App from "./App";
 import {
+  ApiError,
   getAnalysis,
   getGameState,
   playCpuMove,
@@ -14,14 +15,18 @@ import {
 
 import type { AnalysisResult, GameState } from "@/types/game";
 
-vi.mock("@/api/client", () => ({
-  getAnalysis: vi.fn(),
-  getGameState: vi.fn(),
-  playCpuMove: vi.fn(),
-  playHumanMove: vi.fn(),
-  resetGame: vi.fn(),
-  startGame: vi.fn(),
-}));
+vi.mock("@/api/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/client")>();
+  return {
+    ...actual,
+    getAnalysis: vi.fn(),
+    getGameState: vi.fn(),
+    playCpuMove: vi.fn(),
+    playHumanMove: vi.fn(),
+    resetGame: vi.fn(),
+    startGame: vi.fn(),
+  };
+});
 
 // テスト共通の初期状態
 const initialState: GameState = {
@@ -438,5 +443,53 @@ describe("App", () => {
     await screen.findAllByRole("gridcell");
     expect(screen.getByLabelText("対戦モード")).toBeDisabled();
     expect(screen.getByRole("button", { name: "対局を開始する" })).toBeDisabled();
+  });
+  it("409エラー発生時に細心の対局状態を取得する", async () => {
+    const user = userEvent.setup();
+    const latestState: GameState = {
+      ...initialState,
+      mode: "pvc",
+      difficulty: "hard",
+      human_color: 1,
+      cpu_color: 2,
+      started: true,
+    };
+
+    vi.mocked(getGameState)
+      .mockResolvedValueOnce(initialState)
+      .mockResolvedValueOnce(latestState);
+    vi.mocked(playHumanMove).mockRejectedValue(
+      new ApiError("Game state was updated concurrently", 409),
+    );
+    render(<App />);
+    await screen.findAllByRole("gridcell");
+    await user.click(screen.getByRole("button", { name: /3行4列/ }));
+    await waitFor(() => {
+      expect(getGameState).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "最新の盤面を読み込みました",
+    );
+    expect(screen.getByLabelText("対戦モード")).toBeDisabled();
+    expect(screen.getByLabelText("CPUの難易度")).toHaveValue("hard");
+  });
+  it("初回通信失敗後に再度読み込みできる", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGameState)
+      .mockRejectedValueOnce(new ApiError("接続できません", 0))
+      .mockResolvedValueOnce(initialState);
+
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("接続できません");
+
+    await user.click(screen.getByRole("button", { name: "再度読み込み" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("gridcell")).toHaveLength(64);
+    });
+
+    expect(getGameState).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
