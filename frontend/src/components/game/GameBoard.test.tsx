@@ -64,4 +64,18 @@ describe("GameBoard", () => {
 
     expect(onSelectMove).not.toHaveBeenCalled();
   });
+
+  it("盤面の上下方向の座標ラベルを表示する", () => {
+    render(<GameBoard board={board} validMoves={[]} onSelectMove={vi.fn()} />);
+
+    for (const column of "ABCDEFGH") {
+      expect(screen.getByText(column)).toBeInTheDocument();
+    }
+
+    for (let row = 1; row <= 8; row++) {
+      expect(screen.getByText(String(row))).toBeInTheDocument();
+    }
+
+    expect(screen.getAllByRole("gridcell")).toHaveLength(64);
+  });
 });

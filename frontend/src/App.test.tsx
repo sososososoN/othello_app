@@ -74,6 +74,7 @@ const mockAnalysis: AnalysisResult = {
 };
 
 beforeEach(() => {
+  sessionStorage.clear();
   vi.resetAllMocks();
 
   vi.mocked(getGameState).mockResolvedValue(initialState);
@@ -273,10 +274,10 @@ describe("App", () => {
       }),
     );
 
-    expect(await screen.findByText("CPUの思考解析")).toBeInTheDocument();
+    expect(await screen.findByRole("table")).toBeInTheDocument();
 
     // (2, 2) = C3
-    expect(screen.getByText("C3", { exact: true })).toBeInTheDocument();
+    expect(screen.getAllByText("C3", { exact: true })).toHaveLength(2);
 
     expect(screen.getByText("候補手の比較")).toBeInTheDocument();
 
@@ -322,7 +323,11 @@ describe("App", () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText("CPUの思考解析")).not.toBeInTheDocument();
+      expect(resetGame).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(
+        screen.getByText("CPUが着手すると、ここに解析結果を表示します。"),
+      ).toBeInTheDocument();
     });
   });
 
@@ -366,5 +371,58 @@ describe("App", () => {
         name: "CPUの着手を実行",
       }),
     ).toBeInTheDocument();
+  });
+  it("対局開始後は設定と開始ボタンを操作できない", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findAllByRole("gridcell");
+    await user.click(
+      screen.getByRole("button", {
+        name: "対局を開始する",
+      }),
+    );
+    await waitFor(() => {
+      expect(startGame).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText("対戦モード")).toBeDisabled();
+      expect(
+        screen.getByRole("button", {
+          name: "対局を開始する",
+        }),
+      ).toBeDisabled();
+    });
+    expect(screen.getByText("対局中・設定固定")).toBeInTheDocument();
+  });
+
+  it("リセット後は対局設定を再び変更できる", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findAllByRole("gridcell");
+    await user.click(
+      screen.getByRole("button", {
+        name: "対局を開始する",
+      }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "対局を開始する",
+        }),
+      ).toBeDisabled();
+    });
+    await user.click(
+      screen.getByRole("button", {
+        name: "リセット",
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByLabelText("対戦モード")).toBeEnabled();
+      expect(
+        screen.getByRole("button", {
+          name: "対局を開始する",
+        }),
+      ).toBeEnabled();
+    });
   });
 });
