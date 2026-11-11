@@ -255,148 +255,18 @@ function App() {
 
   return (
     <AppLayout>
-      {/* 変更：左右2列が入るよう最大幅を拡大 */}
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-2 sm:px-4">
-        <section className="text-center">
-          <p className="text-sm font-medium text-primary">PLAY AGAINST AI</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            オセロをプレイ
-          </h1>
-          <p className="mt-3 text-muted-foreground">
-            AIの思考を可視化しながら、オセロを楽しもう。
+      <div className="w-full space-y-6">
+        <div className="border-b border-border pb-4">
+          <h1 className="text-xl font-semibold tracking-tight">オセロ</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            対局とコンピュータの思考解析
           </p>
-        </section>
+        </div>
 
-        {/* 変更：設定カードは常に上部いっぱいに表示 */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>対局設定</CardTitle>
-              {hasStarted && (
-                <span
-                  role="status"
-                  className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                >
-                  <LockKeyhole className="size-3.5" />
-                  対局中・設定固定
-                </span>
-              )}
-            </div>
-            <CardDescription>
-              {hasStarted
-                ? "設定を変更するにはリセットしてください。"
-                : "モード・難易度・先攻後攻を選択してください。"}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {/* 変更：PCでは設定項目を横一列にする */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <label htmlFor="game-mode" className="block text-sm font-medium">
-                  対戦モード
-                </label>
-
-                <div className="relative">
-                  <select
-                    id="game-mode"
-                    value={mode}
-                    disabled={settingsLocked}
-                    onChange={(event) => setMode(event.target.value as GameMode)}
-                    className={selectClassName}
-                  >
-                    <option value="pvp">二人で遊ぶ</option>
-                    <option value="pvc">一人で遊ぶ（CPU戦）</option>
-                  </select>
-                  <ChevronDown
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-                  />
-                </div>
-              </div>
-
-              {mode === "pvc" && (
-                <>
-                  <div className="space-y-2">
-                    <label htmlFor="difficulty" className="block text-sm font-medium">
-                      CPUの難易度
-                    </label>
-
-                    <div className="relative">
-                      <select
-                        id="difficulty"
-                        value={difficulty}
-                        disabled={settingsLocked}
-                        onChange={(event) =>
-                          setDifficulty(event.target.value as Difficulty)
-                        }
-                        className={selectClassName}
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="normal">Normal</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="human-order" className="block text-sm font-medium">
-                      自分の手番
-                    </label>
-
-                    <div className="relative">
-                      <select
-                        id="human-order"
-                        value={humanOrder}
-                        disabled={settingsLocked}
-                        onChange={(event) =>
-                          setHumanOrder(event.target.value as HumanOrder)
-                        }
-                        className={selectClassName}
-                      >
-                        <option value="first">先攻（黒）</option>
-                        <option value="second">後攻（白）</option>
-                        <option value="random">ランダム</option>
-                      </select>
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                disabled={settingsLocked}
-                onClick={() => void handleStart()}
-              >
-                対局を開始する
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading || busy || !game}
-                onClick={() => void handleReset()}
-              >
-                リセット
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <Card className="min-w-0">
             <CardHeader className="text-center">
-              <CardTitle>Game Board</CardTitle>
+              <CardTitle>盤面</CardTitle>
               <CardDescription>
                 {game ? getTurnLabel(game) : "読み込み中"}
               </CardDescription>
@@ -465,9 +335,138 @@ function App() {
               )}
             </CardContent>
           </Card>
+          <div className="min-w-0 space-y-5">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle>対局設定</CardTitle>
+                  {hasStarted && (
+                    <span
+                      role="status"
+                      className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+                    >
+                      <LockKeyhole className="size-3.5" />
+                      対局中・設定固定
+                    </span>
+                  )}
+                </div>
+                <CardDescription>
+                  {hasStarted
+                    ? "設定を変更するにはリセットしてください。"
+                    : "モード・難易度・先攻後攻を選択してください。"}
+                </CardDescription>
+              </CardHeader>
 
-          {/* 変更：解析結果を右側に配置 */}
-          <div className="min-w-0">
+              <CardContent className="space-y-4">
+                {/* 変更：PCでは設定項目を横一列にする */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <label htmlFor="game-mode" className="block text-sm font-medium">
+                      対戦モード
+                    </label>
+
+                    <div className="relative">
+                      <select
+                        id="game-mode"
+                        value={mode}
+                        disabled={settingsLocked}
+                        onChange={(event) => setMode(event.target.value as GameMode)}
+                        className={selectClassName}
+                      >
+                        <option value="pvp">二人で遊ぶ</option>
+                        <option value="pvc">一人で遊ぶ（CPU戦）</option>
+                      </select>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  {mode === "pvc" && (
+                    <>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="difficulty"
+                          className="block text-sm font-medium"
+                        >
+                          CPUの難易度
+                        </label>
+
+                        <div className="relative">
+                          <select
+                            id="difficulty"
+                            value={difficulty}
+                            disabled={settingsLocked}
+                            onChange={(event) =>
+                              setDifficulty(event.target.value as Difficulty)
+                            }
+                            className={selectClassName}
+                          >
+                            <option value="easy">Easy</option>
+                            <option value="normal">Normal</option>
+                            <option value="hard">Hard</option>
+                          </select>
+                          <ChevronDown
+                            aria-hidden="true"
+                            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="human-order"
+                          className="block text-sm font-medium"
+                        >
+                          自分の手番
+                        </label>
+
+                        <div className="relative">
+                          <select
+                            id="human-order"
+                            value={humanOrder}
+                            disabled={settingsLocked}
+                            onChange={(event) =>
+                              setHumanOrder(event.target.value as HumanOrder)
+                            }
+                            className={selectClassName}
+                          >
+                            <option value="first">先攻（黒）</option>
+                            <option value="second">後攻（白）</option>
+                            <option value="random">ランダム</option>
+                          </select>
+                          <ChevronDown
+                            aria-hidden="true"
+                            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    disabled={settingsLocked}
+                    onClick={() => void handleStart()}
+                  >
+                    対局を開始する
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loading || busy || !game}
+                    onClick={() => void handleReset()}
+                  >
+                    リセット
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {analysis && game?.mode === "pvc" ? (
               <AnalysisPanel analysis={analysis} />
             ) : (
