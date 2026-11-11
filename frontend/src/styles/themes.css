@@ -1,0 +1,133 @@
+/* ========================================
+   Othello Design System
+   Theme definitions
+   ======================================== */
+
+/* ライトテーマ：標準 */
+:root {
+  color-scheme: light;
+
+  /* ページ背景・文字 */
+  --background: #ffffff;
+  --foreground: #242321;
+
+  /* カード */
+  --card: #ffffff;
+  --card-foreground: #242321;
+
+  /* ポップオーバー */
+  --popover: #ffffff;
+  --popover-foreground: #242321;
+
+  /* メインカラー：落ち着いた深緑 */
+  --primary: #355b43;
+  --primary-foreground: #ffffff;
+
+  /* サブカラー：温かみのあるグレー */
+  --secondary: #f2eee7;
+  --secondary-foreground: #463729;
+
+  /* 補助背景・補助文字 */
+  --muted: #f8f7f4;
+  --muted-foreground: #77736c;
+
+  /* ホバー・選択状態 */
+  --accent: #f0e8dc;
+  --accent-foreground: #242321;
+  --accent-hover: #476f50;
+
+  /* エラー・境界線 */
+  --destructive: #b44339;
+  --border: #e7e3dc;
+  --input: #d8d4cc;
+  --ring: #355b43;
+
+  /* グラフ */
+  --chart-1: #355b43;
+  --chart-2: #88674c;
+  --chart-3: #a77b45;
+  --chart-4: #7f8b66;
+  --chart-5: #b66553;
+
+  /* サイドバー */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #242321;
+  --sidebar-primary: #355b43;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f2eee7;
+  --sidebar-accent-foreground: #242321;
+  --sidebar-border: #e7e3dc;
+  --sidebar-ring: #355b43;
+
+  /* オセロ盤 */
+  --board: #477750;
+  --board-border: #88674c;
+
+  /* オセロの石 */
+  --stone-black: #25231f;
+  --stone-white: #fffdf5;
+
+  /* アプリ独自の背景 */
+  --surface: #ffffff;
+  --surface-raised: #f8f7f4;
+
+  /* 共通の角丸 */
+  --radius: 0.375rem;
+}
+
+/* ダークテーマ：将来の切り替え用 */
+.dark {
+  color-scheme: dark;
+
+  --background: #201e1a;
+  --foreground: #f0ece5;
+
+  --card: #292620;
+  --card-foreground: #f0ece5;
+
+  --popover: #292620;
+  --popover-foreground: #f0ece5;
+
+  --primary: #9bbca1;
+  --primary-foreground: #1d2d22;
+
+  --secondary: #39352e;
+  --secondary-foreground: #f0ece5;
+
+  --muted: #39352e;
+  --muted-foreground: #c0b8ab;
+
+  --accent: #454033;
+  --accent-foreground: #f0ece5;
+  --accent-hover: #b7cfb8;
+
+  --destructive: #e58a7b;
+  --border: #554e43;
+  --input: #60574a;
+  --ring: #9bbca1;
+
+  --chart-1: #9bbca1;
+  --chart-2: #c4a079;
+  --chart-3: #d1b36b;
+  --chart-4: #a8b58c;
+  --chart-5: #dc9785;
+
+  --sidebar: #292620;
+  --sidebar-foreground: #f0ece5;
+  --sidebar-primary: #9bbca1;
+  --sidebar-primary-foreground: #1d2d22;
+  --sidebar-accent: #454033;
+  --sidebar-accent-foreground: #f0ece5;
+  --sidebar-border: #554e43;
+  --sidebar-ring: #9bbca1;
+
+  /* 盤面はライトテーマと同じ配色 */
+  --board: #477750;
+  --board-border: #88674c;
+
+  --stone-black: #25231f;
+  --stone-white: #fffdf5;
+
+  --surface: #292620;
+  --surface-raised: #39352e;
+}
