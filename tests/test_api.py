@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
 
-import service as game_service
-from schemas import GameStateResponse
-import app as othello
-from storage import SQLiteGameStore, GameRecord
-from game import BLACK, WHITE
+import backend.service as game_service
+from backend.schemas import GameStateResponse
+import backend.app as othello
+from backend.storage import SQLiteGameStore, GameRecord
+from backend.game import BLACK, WHITE
 
 
 def test_index(client: TestClient, monkeypatch, tmp_path) -> None:

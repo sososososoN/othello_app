@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-import app as othello
+import backend.app as othello
 
 
 def test_index_without_build_returns_503(

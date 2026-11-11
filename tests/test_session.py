@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-import app as othello
-from game import BLACK, WHITE, Game
+import backend.app as othello
+from backend.game import BLACK, WHITE, Game
 
 
 def test_clients_have_independent_games(

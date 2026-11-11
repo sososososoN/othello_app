@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from learning.articles import get_article, list_articles, render_article
+from backend.learning.articles import get_article, list_articles, render_article
 
 
 def test_article_registry() -> None:

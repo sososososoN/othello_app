@@ -2,10 +2,10 @@ import sqlite3
 
 import pytest
 
-import service as service_module
-from game import BLACK, WHITE
-from service import GameError, GameService
-from storage import GameRecord, SQLiteGameStore
+import backend.service as service_module
+from backend.game import BLACK, WHITE
+from backend.service import GameError, GameService
+from backend.storage import GameRecord, SQLiteGameStore
 
 
 def test_human_first() -> None:

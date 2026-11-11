@@ -1,9 +1,9 @@
 from math import inf
 from time import perf_counter
 
-from ai.models import MoveEvaluation, SearchResult, SearchStats
-from ai.search import apply_move, minimax, order_moves
-from game import (
+from backend.ai.models import MoveEvaluation, SearchResult, SearchStats
+from backend.ai.search import apply_move, minimax, order_moves
+from backend.game import (
     BLACK,
     WHITE,
     DIRECTIONS,

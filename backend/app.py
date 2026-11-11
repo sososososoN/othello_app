@@ -8,9 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from storage import GameRecord, SQLiteGameStore, ConcurrentUpdateError
-from service import GameError, GameService
-from schemas import (
+from backend.storage import GameRecord, SQLiteGameStore, ConcurrentUpdateError
+from backend.service import GameError, GameService
+from backend.schemas import (
     MoveRequest,
     ModeRequest,
     DifficultyRequest,
@@ -20,13 +20,15 @@ from schemas import (
     MoveEvaluationResponse,
     CpuMoveRequest,
 )
-from learning.articles import get_article, list_articles, render_article
-from ai.engine import DIFFICULTY_DEPTH, analyze_cpu_move
-from ai.analysis_token import AnalysisTokenManager, board_fingerprint
+from backend.learning.articles import get_article, list_articles, render_article
+from backend.ai.engine import DIFFICULTY_DEPTH, analyze_cpu_move
+from backend.ai.analysis_token import AnalysisTokenManager, board_fingerprint
 
-BASE_DIR = Path(__file__).resolve().parent
+BACKEND_DIR = Path(__file__).resolve().parent
 
-FRONTEND_DIST_DIR = BASE_DIR / "frontend" / "dist"
+PROJECT_ROOT = BACKEND_DIR.parent
+
+FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
 
 app = FastAPI(title="Othello API", version="1.0.0")
 
@@ -45,7 +47,7 @@ app.add_middleware(
 
 app.mount(
     "/static",
-    StaticFiles(directory=BASE_DIR / "static"),
+    StaticFiles(directory=PROJECT_ROOT / "static"),
     name="static",
 )
 
@@ -58,12 +60,12 @@ app.mount(
     name="frontend-assets",
 )
 
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+templates = Jinja2Templates(directory=PROJECT_ROOT / "templates")
 
 db_path = Path(
     os.environ.get(
         "OTHELLO_DB_PATH",
-        str(BASE_DIR / "data" / "othello.db"),
+        str(PROJECT_ROOT / "data" / "othello.db"),
     )
 )
 

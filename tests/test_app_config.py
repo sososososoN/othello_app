@@ -31,7 +31,7 @@ def test_invalid_session_secret_prevents_startup(
 
     # 別のPythonプロセスでapp.pyを読み込む
     result = subprocess.run(
-        [sys.executable, "-c", "import app"],
+        [sys.executable, "-c", "import backend.app"],
         cwd=PROJECT_ROOT,
         env=env,
         capture_output=True,
@@ -53,7 +53,7 @@ def test_valid_session_secret_allows_startup(
     env["SESSION_SECRET_KEY"] = "test-only-" + "a" * 40
 
     result = subprocess.run(
-        [sys.executable, "-c", "import app"],
+        [sys.executable, "-c", "import backend.app"],
         cwd=PROJECT_ROOT,
         env=env,
         capture_output=True,

@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from game import Game
-from schemas import DifficultyRequest, GameStateResponse, MoveRequest
+from backend.game import Game
+from backend.schemas import DifficultyRequest, GameStateResponse, MoveRequest
 
 
 def valid_state() -> dict:

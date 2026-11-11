@@ -1,7 +1,7 @@
 from math import inf
 
-from ai.evaluation import WEIGHTS, evaluate_board
-from game import (
+from backend.ai.evaluation import WEIGHTS, evaluate_board
+from backend.game import (
     BLACK,
     WHITE,
     Board,
@@ -9,7 +9,7 @@ from game import (
     get_flippable_stones,
     get_valid_moves,
 )
-from ai.models import SearchStats
+from backend.ai.models import SearchStats
 
 
 def apply_move(

@@ -3,7 +3,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 import hashlib
 import json
 
-from game import BLACK, WHITE, Position, Board
+from backend.game import BLACK, WHITE, Position, Board
 
 
 def board_fingerprint(board: Board) -> str:

@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-import app as othello
-import service as service_module
-from game import BLACK, WHITE
+import backend.app as othello
+import backend.service as service_module
+from backend.game import BLACK, WHITE
 
 
 def start_pvc(

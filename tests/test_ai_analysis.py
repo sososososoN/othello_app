@@ -1,7 +1,7 @@
 import pytest
 
-from ai.engine import analyze_cpu_move, choose_cpu_move
-from game import BLACK, Game, create_board
+from backend.ai.engine import analyze_cpu_move, choose_cpu_move
+from backend.game import BLACK, Game, create_board
 
 
 @pytest.mark.parametrize("depth", [0, 1, 2, 3])
@@ -63,7 +63,7 @@ def test_analysis_rejects_negative_depth() -> None:
 
 def test_analysis_contains_all_legal_moves() -> None:
     """すべての合法手が候補手一覧に含まれることを確認する。"""
-    from game import WHITE, get_valid_moves
+    from backend.game import WHITE, get_valid_moves
 
     game = Game()
     assert game.place(2, 3)

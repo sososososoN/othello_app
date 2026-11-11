@@ -1,5 +1,5 @@
 import pytest
-from game import BLACK, WHITE, Game, create_board
+from backend.game import BLACK, WHITE, Game, create_board
 
 
 def test_initial_board() -> None:
@@ -58,7 +58,7 @@ def test_games_are_independent() -> None:
 
 
 def test_invalid_player_raises_error() -> None:
-    from game import get_flippable_stones
+    from backend.game import get_flippable_stones
 
     with pytest.raises(ValueError):
         get_flippable_stones(create_board(), 2, 3, 99)

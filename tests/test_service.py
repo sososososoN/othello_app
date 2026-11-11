@@ -1,8 +1,8 @@
 import pytest
 
-from game import BLACK, WHITE, Game, Board, Position
-from service import GameError, GameService
-from storage import GameRecord
+from backend.game import BLACK, WHITE, Game, Board, Position
+from backend.service import GameError, GameService
+from backend.storage import GameRecord
 
 
 def test_initial_state() -> None:
@@ -249,8 +249,8 @@ def test_persist_failure_does_not_return_success() -> None:
 
 def test_failed_persistence_restores_version() -> None:
     """永続化に失敗した場合はversionも復元する。"""
-    from service import GameService
-    from storage import GameRecord
+    from backend.service import GameService
+    from backend.storage import GameRecord
 
     record = GameRecord()
     service = GameService(record)

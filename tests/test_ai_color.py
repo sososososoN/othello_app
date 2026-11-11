@@ -2,10 +2,10 @@ from math import inf
 
 import pytest
 
-from ai.engine import analyze_cpu_move, choose_cpu_move
-from ai.evaluation import evaluate_board
-from ai.search import minimax
-from game import BLACK, WHITE, Game, create_board, get_valid_moves
+from backend.ai.engine import analyze_cpu_move, choose_cpu_move
+from backend.ai.evaluation import evaluate_board
+from backend.ai.search import minimax
+from backend.game import BLACK, WHITE, Game, create_board, get_valid_moves
 
 
 @pytest.mark.parametrize("player", [BLACK, WHITE])

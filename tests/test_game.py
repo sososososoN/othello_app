@@ -1,4 +1,4 @@
-from game import BLACK, WHITE, Game
+from backend.game import BLACK, WHITE, Game
 
 
 def test_place_and_flip() -> None:

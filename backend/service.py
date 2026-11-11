@@ -3,9 +3,9 @@ from contextlib import contextmanager
 from copy import deepcopy
 from secrets import choice
 
-from game import BLACK, EMPTY, WHITE, Board, Game, Position
-from ai.engine import DIFFICULTY_DEPTH, choose_cpu_move
-from storage import GameRecord
+from backend.game import BLACK, EMPTY, WHITE, Board, Game, Position
+from backend.ai.engine import DIFFICULTY_DEPTH, choose_cpu_move
+from backend.storage import GameRecord
 
 CpuSelector = Callable[[Board], Position | None]
 

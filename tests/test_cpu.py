@@ -2,10 +2,10 @@ from math import inf
 
 import pytest
 
-from game import BLACK, WHITE, Game, create_board, get_valid_moves
-from ai.engine import choose_cpu_move
-from ai.evaluation import evaluate_board, WIN_SCORE, WEIGHTS
-from ai.search import apply_move, minimax, order_moves
+from backend.game import BLACK, WHITE, Game, create_board, get_valid_moves
+from backend.ai.engine import choose_cpu_move
+from backend.ai.evaluation import evaluate_board, WIN_SCORE, WEIGHTS
+from backend.ai.search import apply_move, minimax, order_moves
 
 
 def test_apply_move() -> None:
