@@ -34,7 +34,7 @@ import type {
 const selectClassName =
   "h-10 w-full appearance-none rounded-lg border border-border " +
   "bg-background px-3 pr-10 text-sm font-medium text-foreground " +
-  "shadow-sm transition-colors " +
+  "transition-colors " +
   "hover:border-primary/40 " +
   "focus-visible:outline-none focus-visible:ring-2 " +
   "focus-visible:ring-primary/40 " +

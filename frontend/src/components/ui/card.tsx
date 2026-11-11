@@ -11,7 +11,24 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        // カードの構造は維持
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden",
+
+        // 大きな角丸とリングをやめ、細い境界線に変更
+        "rounded-md border border-border bg-card",
+
+        // 既存の文字色と余白の仕組みを維持
+        "py-(--card-spacing) text-sm text-card-foreground",
+        "[--card-spacing:--spacing(4)]",
+        "data-[size=sm]:[--card-spacing:--spacing(3)]",
+
+        // CardFooter・画像を持つカードとの互換性
+        "has-data-[slot=card-footer]:pb-0",
+        "data-[size=sm]:has-data-[slot=card-footer]:pb-0",
+        "has-[>img:first-child]:pt-0",
+        "*:[img:first-child]:rounded-t-md",
+        "*:[img:last-child]:rounded-b-md",
+
         className,
       )}
       {...props}
