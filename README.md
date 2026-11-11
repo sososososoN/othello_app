@@ -1,67 +1,114 @@
 # Othello AI Lab
 
-オセロを通じて、AIの探索アルゴリズムを学べるWebアプリケーションです。
+オセロをプレイしながら、Minimax法やαβ枝刈りなどのAI探索アルゴリズムを学べるWebアプリケーションです。
 
-FastAPIとJavaScriptを使用して開発しています。通常のオセロ対戦に加え、Minimax法などのアルゴリズムを解説コラムやインタラクティブなデモで学習できるサイトを目指しています。
+フロントエンドはReact・TypeScript、バックエンドはFastAPI・Pythonで構成されています。対局状態はSQLiteに保存され、CPUが選んだ手の評価値や探索統計を確認できます。
 
 ## 主な機能
 
 ### オセロ対戦
 
-- PvP（対人戦）・PvC（CPU対戦）
-- Minimax法とαβ枝刈りによるCPU
+- PvP（2人対戦）とPvC（CPU対戦）
 - Easy / Normal / Hardの難易度選択
-- 合法手の表示、パス・勝敗判定
-- CPU思考中の表示
-- SQLiteによる対局状態の保存・再開
+- CPU対戦での先攻・後攻・ランダム選択
+- 合法手の表示、石の反転、パス・終局判定
+- 対局設定、盤面、CPU解析パネルのReact UI
+- SQLiteによる対局状態の保存と再読み込み時の復元
+
+### CPUの思考解析
+
+- Minimax法とαβ枝刈りによる着手選択
+- 最善手・候補手ごとの評価値とペナルティの表示
+- 探索深さ、探索ノード数、枝刈り回数、解析時間の表示
+- 署名付き解析トークンを使った解析結果の着手への再利用
+
+CPU解析は、PvCモードでCPUの手番のときに利用できます。
 
 ### アルゴリズム学習
 
-- 学習コラム一覧
-- Minimax法の解説記事
-- インタラクティブな探索木デモ
+- 学習コラムの一覧
+- Markdown形式のMinimax法解説記事
+- 固定された探索木を使ったインタラクティブなMinimaxデモ
 
-今後、CPUの探索過程の可視化やアルゴリズム比較機能を追加する予定です。
-
-### CPU探索解析API
-
-- `GET /analysis` により、現在のCPUの手番を解析
-- 各合法手のMinimax評価値・ペナルティ・最終評価値を取得
-- 最善手、探索ノード数、αβ枝刈り回数、探索時間を取得
-- `depth` パラメータで探索深さを0〜5の範囲で指定可能
-- `depth` 省略時は現在のCPU難易度を使用
-- PvCモードかつCPUの手番で利用可能
-- 解析処理自体は対局状態を変更しない
-
-API仕様は `/docs` から確認できます。
+学習ページは現在、ReactではなくFastAPI・Jinja2で配信しています。
 
 ## 技術スタック
 
-| 分野 | 技術 |
+| 分野 | 使用技術 |
 |---|---|
+| Frontend | React / TypeScript / Vite |
+| UI | Tailwind CSS / shadcn/ui系コンポーネント |
 | Backend | Python 3.13 / FastAPI / Pydantic |
-| Frontend | HTML / CSS / JavaScript / Jinja2 |
+| AI | Minimax法 / αβ枝刈り |
 | Database | SQLite |
-| Content | Markdown |
-| Testing | pytest / Vitest |
-| Lint / Format | Ruff / ESLint / Prettier |
+| 学習コンテンツ | Markdown / Jinja2 |
+| Frontendテスト | Vitest / React Testing Library |
+| Backendテスト | pytest |
+| Lint・整形 | Oxlint / Prettier / Ruff |
 | CI | GitHub Actions |
-| Container | Docker / Docker Compose |
+| コンテナ | Docker / Docker Compose |
 
-## セットアップ
+## ディレクトリ構成
+
+```text
+othello_app/
+├── backend/
+│   ├── ai/
+│   │   ├── analysis_token.py   # 解析結果の署名と検証
+│   │   ├── engine.py           # CPUの着手選択・解析
+│   │   ├── evaluation.py       # 局面評価関数
+│   │   ├── models.py           # 解析結果と探索統計の型
+│   │   └── search.py           # Minimax・αβ枝刈り
+│   ├── learning/
+│   │   └── articles.py         # 学習記事の管理
+│   ├── app.py                  # FastAPIルーティング
+│   ├── game.py                 # オセロのルール
+│   ├── schemas.py              # API入出力スキーマ
+│   ├── service.py              # 対局操作・状態遷移
+│   └── storage.py              # SQLiteへの保存・読み込み
+├── frontend/
+│   ├── public/                 # 画像など
+│   ├── src/
+│   │   ├── api/                # FastAPIへのHTTP通信
+│   │   ├── components/         # Reactコンポーネント
+│   │   ├── lib/                # 共通ユーティリティ
+│   │   ├── test/               # テスト共通設定
+│   │   ├── types/              # TypeScript型定義
+│   │   ├── App.tsx             # オセロ画面
+│   │   └── main.tsx            # React起動処理
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── vitest.config.ts
+├── content/algorithms/         # 学習記事のMarkdown
+├── static/                     # 学習ページ用CSS・JavaScript
+├── templates/                  # 学習ページ用Jinja2テンプレート
+├── tests/                      # Pythonテスト
+├── .github/workflows/ci.yaml   # GitHub Actions
+├── benchmark_cpu.py            # CPU探索の計測
+├── compose.yaml
+├── Dockerfile
+├── pyproject.toml
+├── requirements.txt
+└── requirements-dev.txt
+```
+
+`frontend/dist/` はViteのビルド時に生成されるディレクトリです。Gitには登録しません。
+
+## ローカルセットアップ
+
+Windows PowerShellでのセットアップ例です。
 
 ### 1. リポジトリを取得
 
-```bash
+```powershell
 git clone https://github.com/sososososoN/othello_app.git
 cd othello_app
 ```
 
-### 2. Python環境を準備
+### 2. Python環境を作成
 
 Python 3.13を使用します。
-
-Windows PowerShell：
 
 ```powershell
 py -3.13 -m venv .venv
@@ -69,48 +116,109 @@ py -3.13 -m venv .venv
 python -m pip install -r requirements-dev.txt
 ```
 
-### 3. JavaScriptの依存関係をインストール
+### 3. 環境変数を設定
 
-Node.jsとnpmが必要です。
-
-```powershell
-npm ci
-```
-
-### 4. 環境変数を設定
-
-プロジェクト直下に `.env` を作成します。
-
-```dotenv
-SESSION_SECRET_KEY=your-random-secret-key
-OTHELLO_DB_PATH=data/othello.db
-```
-
-署名鍵は以下のコマンドで生成できます。
+プロジェクトのルートに`.env`を作成します。
 
 ```powershell
 Copy-Item .env.example .env
+```
+
+署名鍵を生成します。
+
+```powershell
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-生成した値を `SESSION_SECRET_KEY` に設定してください。
+生成した文字列を`.env`の`SESSION_SECRET_KEY`に設定してください。
 
-`.env` はGit管理対象外です。
+```dotenv
+SESSION_SECRET_KEY=ここに生成したランダム文字列を設定
+OTHELLO_DB_PATH=data/othello.db
+```
+
+`SESSION_SECRET_KEY`には32文字以上の鍵が必要です。`.env`はGitにコミットしないでください。
+
+### 4. Reactの依存関係をインストール
+
+Node.jsとnpmを用意し、`frontend/`で実行します。
+
+```powershell
+cd frontend
+npm ci
+cd ..
+```
 
 ## 起動方法
 
-### ローカル実行
+### 方法A：開発モード（推奨）
+
+FastAPIとViteを別々のターミナルで起動します。
+
+**ターミナル1：FastAPI**
+
+リポジトリのルートから実行します。
 
 ```powershell
-python -m uvicorn app:app --reload --port 5001 --env-file .env
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn backend.app:app --reload --port 5001 --env-file .env
 ```
 
-### Docker
+**ターミナル2：React**
 
-Docker DesktopなどのDocker実行環境と、必要な環境変数を設定した `.env` を用意してください。
+```powershell
+cd frontend
+npm run dev
+```
+
+ブラウザで次のURLにアクセスします。
+
+- React開発画面：`http://127.0.0.1:5173/`
+- FastAPIドキュメント：`http://127.0.0.1:5001/docs`
+
+ViteはゲームAPIへのリクエストをFastAPIの5001番ポートに転送します。
+
+### 方法B：FastAPIからReactを配信
+
+Viteの開発サーバーを使わず、Reactのビルド成果物をFastAPIから配信します。
+
+**最初にReactをビルド**
+
+```powershell
+cd frontend
+npm run build
+cd ..
+```
+
+**FastAPIを起動**
+
+```powershell
+python -m uvicorn backend.app:app --reload --port 5001 --env-file .env
+```
+
+アクセス先：`http://127.0.0.1:5001/`
+
+Reactのコードを変更した場合は、再度`npm run build`する必要があります。
+
+ビルド済みファイルが存在しない場合、トップページはHTTP 503を返します。
+
+### 方法C：Docker Compose
+
+Docker Desktopなどの実行環境と`.env`を用意してください。
 
 ```powershell
 docker compose up --build -d
+```
+
+Docker内でReactをビルドし、FastAPIから配信します。
+
+アクセス先：`http://127.0.0.1:5001/`
+
+状態確認：
+
+```powershell
+docker compose ps
+docker compose logs -f web
 ```
 
 停止：
@@ -119,50 +227,42 @@ docker compose up --build -d
 docker compose down
 ```
 
-SQLiteのデータはDocker Volumeに永続化されます。
+SQLiteデータはDocker Volumeに保存されるため、通常のコンテナ再作成では維持されます。
 
-## アクセス先
+## 主なURL
 
-ローカル起動時：
-
-| ページ | URL |
+| URL | 内容 |
 |---|---|
-| オセロ対戦 | http://127.0.0.1:5001/ |
-| 学習コラム一覧 | http://127.0.0.1:5001/learn |
-| Minimax法の解説 | http://127.0.0.1:5001/learn/minimax |
-| APIドキュメント | http://127.0.0.1:5001/docs |
+| `/` | オセロ画面（React本番ビルド） |
+| `/learn` | 学習コラム一覧 |
+| `/learn/minimax` | Minimax法の解説とデモ |
+| `/docs` | FastAPIのSwagger UI |
+| `/openapi.json` | OpenAPI仕様 |
 
-## プロジェクト構成
+### 主なゲームAPI
 
-主要ディレクトリ・ファイルのみ記載します。
+| メソッド | パス | 機能 |
+|---|---|---|
+| GET | `/state` | 現在の対局状態を取得 |
+| POST | `/games/start` | 対戦モード・難易度・先後を指定して対局開始 |
+| POST | `/moves/player` | 人間の着手 |
+| GET | `/analysis` | CPUの手を解析 |
+| POST | `/moves/cpu` | CPUの着手 |
+| POST | `/reset` | 盤面をリセット |
+| PATCH | `/mode` | 対戦モードの変更 |
+| PATCH | `/difficulty` | CPU難易度の変更 |
 
-```text
-othello_app/
-├── ai/
-│   ├── __init__.py
-│   ├── engine.py          # CPUの着手選択・解析
-│   ├── evaluation.py      # 局面評価関数
-│   ├── models.py          # 探索結果・統計のデータ型
-│   └── search.py          # Minimax・αβ枝刈り
-├── app.py                 # FastAPIエンドポイント
-├── game.py                # オセロのルール・盤面管理
-├── service.py             # 対局操作・状態遷移
-├── storage.py             # 対局の永続化
-├── schemas.py             # API入出力スキーマ
-├── learning/              # 学習記事の管理
-├── content/algorithms/    # Markdown形式の学習記事
-├── templates/             # HTMLテンプレート
-├── static/                # CSS・JavaScript
-├── tests/                 # Pythonテスト
-├── test_js/               # JavaScriptテスト
-├── Dockerfile
-├── compose.yaml
-└── requirements.txt
-```
+`POST /moves`も互換用の対局APIとして利用できます。最新のReact画面では、主に`/moves/player`と`/moves/cpu`を使用しています。
 
-## 開発・テスト
+`GET /analysis`の`depth`は0〜5を指定できます。省略すると選択されたCPU難易度に応じた探索深さを使用します。
 
-### Python
+リクエスト・レスポンスの詳細は`/docs`を参照してください。
+
+## テスト・コード品質
+
+### Backend
+
+リポジトリのルートで実行します。
 
 ```powershell
 python -m ruff check .
@@ -170,38 +270,43 @@ python -m ruff format --check .
 python -m pytest -v
 ```
 
-### JavaScript
+### Frontend
+
+`frontend/`で実行します。
 
 ```powershell
+cd frontend
+
 npm run lint
 npm run format:check
 npm test
+npm run build
 ```
 
-GitHub ActionsでCIを実行しています。
+整形を適用するときは次を実行します。
 
-開発は作業ブランチを作成し、Pull Request経由で `main` に反映する方針です。
+```powershell
+npm run format
+```
+
+GitHub Actionsでは、PythonのLint・テストと、ReactのLint・テスト・ビルドを別のジョブで実行しています。
+
+## 開発上の注意事項
+
+- ゲーム状態はSQLiteに保存されます。
+- 同時更新の競合はバージョン番号による楽観的ロックで検出し、HTTP 409を返します。
+- 現在のReact画面では、対局開始状態の一部をブラウザの`sessionStorage`でも管理しています。複数タブ間の状態同期は今後の改善対象です。
+- CPUの探索時間は難易度と局面によって変化します。
+- 学習ページのMinimaxデモは固定データを使用し、実際のCPU探索とは連動していません。
+- 本番公開に際しては、HTTPS、セッションCookie設定、CPU解析の負荷対策などを追加で検討してください。
 
 ## 今後の予定
 
-## 今後の予定
-
-- CPUの候補手・評価値・探索ノード数の可視化
-- Minimax法・αβ枝刈りなどの学習コラム拡充
-- 探索木のインタラクティブな可視化
-- アルゴリズム比較・実験機能
-- 本番環境へのデプロイ
-- 並行アクセス時の整合性とエラーハンドリングの強化
-
-## 注意事項
-
-## 注意事項
-
-- 対局状態はSQLiteに永続化されます。
-- 更新競合はバージョン番号を使用した楽観的ロックで検出し、APIではHTTP 409を返します。
-- 複数ワーカー間で完全な処理の直列化を保証する設計ではありません。
-- 学習用Minimaxデモは固定データを使用しており、実際のCPU探索とは未連携です。
-- CPUの応答時間は探索深さや盤面によって変化します。
+- 対局開始状態のバックエンドへの一本化
+- API競合時の再同期とエラー復旧の改善
+- CPU解析の負荷制限とセキュリティ対策
+- ブラウザを使ったE2Eテストの導入
+- 探索過程の可視化・アルゴリズム比較機能の拡充
 
 ## ライセンス
 
