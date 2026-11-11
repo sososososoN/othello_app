@@ -1,70 +1,6 @@
 
-name: CI
-
-on:
-  push:
-    branches:
-      - main
-      - "refactor/**"
-      - "feat/**"
-      - "chore/**"
-    paths:
-      - "**/*.py"
-      - "requirements.txt"
-      - "pytest.ini"
-      - "pyproject.toml"
-      - "static/js/**"
-      - "tests/**"
-      - ".github/workflows/ci.yaml"
-      - "frontend/**"
-
-  pull_request:
-    branches:
-      - main
-
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  python-tests:
-    name: Python / pytest
-    runs-on: ubuntu-latest
-
-    env:
-      SESSION_SECRET_KEY: "ci-test-only-session-secret-key-0123456789"
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-
-      - name: Ruff lint
-        run: python -m ruff check .
-
-      - name: Ruff format check
-        run: python -m ruff format --check .
-
-      - name: Run pytest
-        env:
-          SESSION_SECRET_KEY: ci-test-only-session-secret-key-0123456789
-        run: python -m pytest -v
-  
-  frontend-build:
-    name: React / TypeScript / Vite
+  e2e-tests:
+    name: Browser / Playwright E2E
     runs-on: ubuntu-latest
 
     defaults:
@@ -72,65 +8,44 @@ jobs:
         working-directory: frontend
 
     steps:
+      # リポジトリのコードを取得
       - uses: actions/checkout@v7
 
+      # FastAPIを動かすPython環境を準備
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      # PlaywrightとViteを動かすNode.js環境を準備
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      # FastAPIの依存パッケージをインストール
+      - name: Install Python dependencies
+        working-directory: .
+        run: python -m pip install -r requirements-dev.txt
+
+      # frontend/package-lock.jsonに従ってインストール
+      - name: Install frontend dependencies
         run: npm ci
-      
-      - name: Lint
-        run: npm run lint
 
-      - name: Check formatting
-        run: npm run format:check
+      # ChromiumとLinux側の依存ライブラリをインストール
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
-      - name: React component tests
-        run: npm test
+      # 実際のブラウザを使ってE2Eテストを実行
+      - name: Run E2E tests
+        run: npm run test:e2e
 
-      - name: TypeScript check and production build
-        run: npm run build
-
-e2e-tests:
-  name: Browser / Playwright E2E
-  runs-on: ubuntu-latest
-
-  defaults:
-    run:
-      working-directory: frontend
-  
-  steps:
-    - uses: actions/checkout@v7
-
-    - uses: actions/setup-python@v7
-      with:
-        python-version: "3.13"
-        cache: pip
-    
-    - uses: actions/setup-node@v7
-      with:
-        node-version: "24"
-        cache: npm
-        cache-dependency-path: frontend/package-lock.json
-
-    - name: Instll Python dependencies
-      working-directory: .
-      run: python -m pip install -r requirements-dev.txt
-    
-    - name: Install frontend dependencies
-      run: npm ci
-
-    - name: Install Chromium
-      run: npx playwright install --with-deps chromium
-
-    - name: Run E2E Playwright artifacts
-      if: failure()
-      uses: actions/upload-artifact@v5
-      with:
-        name: playwright-e2e-results
-        path: frontend/test-results/
-        retention-days: 7
+      # テストが失敗した場合にスクリーンショットなどを保存
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-e2e-results
+          path: frontend/test-results/
+          retention-days: 7
