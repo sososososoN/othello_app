@@ -16,6 +16,10 @@ services:
       # SQLiteの保存先をコンテナ内の固定パスにする
       OTHELLO_DB_PATH: /app/data/othello.db
 
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+
+      ANALYSIS_MAX_CONCURRENT: ${ANALYSIS_MAX_CONCURRENT:-1}
+
     volumes:
       # コンテナを再作成してもDBを保持する
       - othello_data:/app/data

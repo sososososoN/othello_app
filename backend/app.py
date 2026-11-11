@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Annotated
+from threading import BoundedSemaphore
 
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
@@ -37,12 +38,25 @@ if session_secret_key is None or len(session_secret_key) < 32:
     raise RuntimeError("SESSION_SECRET_KEY must contain at least 32 characters")
 
 analysis_tokens = AnalysisTokenManager(session_secret_key)
+raw_max_concurrent = os.environ.get("ANALYSIS_MAX_CONCURRENT", "1")
+try:
+    max_concurrent = int(raw_max_concurrent)
+except ValueError as exc:
+    raise RuntimeError("ANALYSIS_MAX_CONCURRENT must be a positive integer") from exc
+if max_concurrent < 1:
+    raise RuntimeError("ANALYSIS_MAX_CONCURRENT must be a positive integer")
+analysis_slots = BoundedSemaphore(max_concurrent)
+
+cookie_secure_value = os.environ.get("SESSION_COKKIE_SECURE", "false").lower()
+if cookie_secure_value not in ("true", "false"):
+    raise RuntimeError("SESSION_COKKIE_SECURE must be true or false")
+cookie_secure = cookie_secure_value == "true"
 
 app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret_key,
     same_site="lax",
-    https_only=False,
+    https_only=cookie_secure,
 )
 
 app.mount(
@@ -226,11 +240,20 @@ def get_analysis(
 
         configured_depth = DIFFICULTY_DEPTH[difficulty]
         selected_depth = configured_depth if depth is None else depth
-    result = analyze_cpu_move(
-        board,
-        depth=selected_depth,
-        player=cpu_color,
-    )
+    if not analysis_slots.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent analysis requests",
+            headers={"Retry-After": "1"},
+        )
+    try:
+        result = analyze_cpu_move(
+            board,
+            depth=selected_depth,
+            player=cpu_color,
+        )
+    finally:
+        analysis_slots.release()
     token = None
 
     if result.best_move is not None and selected_depth == configured_depth:
