@@ -21,3 +21,4 @@ test_js/
 .coverage
 coverage/
 README.md
+frontend/dist
