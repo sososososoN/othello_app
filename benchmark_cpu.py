@@ -1,8 +1,8 @@
 from statistics import mean
 from time import perf_counter
 
-from cpu import choose_cpu_move
-from game import create_board
+from backend.ai.engine import choose_cpu_move
+from backend.game import create_board
 
 
 def benchmark(depth: int, runs: int = 3) -> None:

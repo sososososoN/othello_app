@@ -13,12 +13,8 @@ on:
       - "requirements.txt"
       - "pytest.ini"
       - "pyproject.toml"
-      - "package.json"
-      - "package-lock.json"
-      - "eslint.config.mjs"
       - "static/js/**"
       - "tests/**"
-      - "test_js/**"
       - ".github/workflows/ci.yaml"
       - "frontend/**"
 
@@ -66,30 +62,6 @@ jobs:
         env:
           SESSION_SECRET_KEY: ci-test-only-session-secret-key-0123456789
         run: python -m pytest -v
-
-  javascript-tests:
-    name: JavaScript / Vitest
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Check JavaScript formatting
-        run: npm run format:check
-      
-      - name: Run Vitest
-        run: npm test
   
   frontend-build:
     name: React / TypeScript / Vite
