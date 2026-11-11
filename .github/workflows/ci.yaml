@@ -8,6 +8,7 @@ on:
       - "refactor/**"
       - "feat/**"
       - "chore/**"
+      - "test/**"
     paths:
       - "**/*.py"
       - "requirements.txt"
@@ -94,3 +95,55 @@ jobs:
 
       - name: TypeScript check and production build
         run: npm run build
+
+  
+  e2e-tests:
+    name: Browser / Playwright E2E
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      # リポジトリのコードを取得
+      - uses: actions/checkout@v7
+
+      # FastAPIを動かすPython環境を準備
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      # PlaywrightとViteを動かすNode.js環境を準備
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # FastAPIの依存パッケージをインストール
+      - name: Install Python dependencies
+        working-directory: .
+        run: python -m pip install -r requirements-dev.txt
+
+      # frontend/package-lock.jsonに従ってインストール
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # ChromiumとLinux側の依存ライブラリをインストール
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # 実際のブラウザを使ってE2Eテストを実行
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      # テストが失敗した場合にスクリーンショットなどを保存
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-e2e-results
+          path: frontend/test-results/
+          retention-days: 7

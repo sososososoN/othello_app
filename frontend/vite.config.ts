@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // FastAPIの接続先
-const apiTarget = "http://127.0.0.1:5001";
+const apiTarget = process.env.OTHELLO_API_TARGET ?? "http://127.0.0.1:5001";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
