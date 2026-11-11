@@ -23,8 +23,10 @@ def test_index(client: TestClient, monkeypatch, tmp_path) -> None:
 
 
 def test_static_files(client: TestClient) -> None:
-    assert client.get("/static/css/style.css").status_code == 200
-    assert client.get("/static/js/othello.js").status_code == 200
+    assert client.get("/static/css/learning.css").status_code == 200
+    assert client.get("/static/js/minimax_demo.js").status_code == 200
+    assert client.get("/static/css/style.css").status_code == 404
+    assert client.get("/static/js/othello.js").status_code == 404
 
 
 def test_initial_state(client: TestClient) -> None:

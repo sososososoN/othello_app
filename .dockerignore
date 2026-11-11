@@ -17,7 +17,6 @@ data/
 .env.*
 !.env.example
 tests/
-test_js/
 .coverage
 coverage/
 README.md
