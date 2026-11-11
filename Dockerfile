@@ -21,11 +21,9 @@ COPY requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py game.py schemas.py service.py storage.py ./
-COPY ai/ ./ai/
+COPY backend ./backend/
 COPY static/ ./static/
 COPY templates/ ./templates/
-COPY learning/ ./learning/
 COPY content/ ./content/
 
 COPY --from=frontend-builder /frontend/dist ./frontend/dist/
@@ -34,4 +32,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 5001
 
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["python", "-m", "uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "5001"]

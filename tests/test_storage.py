@@ -1,5 +1,5 @@
-from game import BLACK, WHITE
-from storage import GameStore
+from backend.game import BLACK, WHITE
+from backend.storage import GameStore
 
 
 def test_create_game() -> None:

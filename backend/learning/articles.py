@@ -3,7 +3,7 @@ from pathlib import Path
 
 import markdown
 
-CONTENT_DIR = Path(__file__).resolve().parent.parent / "content" / "algorithms"
+CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "algorithms"
 
 
 @dataclass(frozen=True)

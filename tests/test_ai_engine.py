@@ -1,11 +1,11 @@
 import pytest
 
-from ai.engine import (
+from backend.ai.engine import (
     DIFFICULTY_DEPTH,
     choose_cpu_move,
     count_adjacent_empty_cells,
 )
-from game import BLACK, WHITE, Game, create_board, get_valid_moves
+from backend.game import BLACK, WHITE, Game, create_board, get_valid_moves
 
 
 def test_difficulty_depths() -> None:

@@ -1,4 +1,4 @@
-from game import BLACK, WHITE, Board, get_valid_moves
+from backend.game import BLACK, WHITE, Board, get_valid_moves
 
 # 盤面の各マスに割り当てる位置評価値
 WEIGHTS = (

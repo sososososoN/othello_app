@@ -9,7 +9,7 @@ from threading import RLock
 from uuid import uuid4
 from weakref import WeakValueDictionary
 
-from game import BLACK, Game
+from backend.game import BLACK, Game
 
 
 class ConcurrentUpdateError(RuntimeError):

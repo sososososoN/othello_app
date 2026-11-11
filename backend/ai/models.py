@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from game import Position
+from backend.game import Position
 
 
 @dataclass

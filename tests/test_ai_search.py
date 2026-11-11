@@ -1,8 +1,8 @@
 from math import inf
 
-from ai.models import SearchStats
-from ai.search import minimax
-from game import WHITE, create_board
+from backend.ai.models import SearchStats
+from backend.ai.search import minimax
+from backend.game import WHITE, create_board
 
 
 def test_minimax_collects_search_statistics() -> None:

@@ -8,9 +8,9 @@ from weakref import WeakValueDictionary
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from threading import Event
 
-from game import BLACK, WHITE
-from service import GameService
-from storage import SQLiteGameStore, GameRecord, ConcurrentUpdateError
+from backend.game import BLACK, WHITE
+from backend.service import GameService
+from backend.storage import SQLiteGameStore, GameRecord, ConcurrentUpdateError
 
 
 @pytest.fixture
@@ -221,7 +221,7 @@ def test_existing_database_migrates_without_data_loss(
 
 def test_sqlite_store_is_independent_of_memory_store(db_path) -> None:
     """SQLiteストアがメモリストアを継承していないことを確認する。"""
-    from storage import GameStore
+    from backend.storage import GameStore
 
     store = SQLiteGameStore(db_path)
 

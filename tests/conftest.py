@@ -2,10 +2,10 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-import app as othello
+import backend.app as othello
 
 from fastapi.testclient import TestClient
-from storage import GameStore
+from backend.storage import GameStore
 
 
 @pytest.fixture
