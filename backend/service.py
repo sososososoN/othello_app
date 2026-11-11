@@ -40,6 +40,7 @@ class GameService:
             original_mode = self.record.mode
             original_difficulty = self.record.difficulty
             original_human_color = self.record.human_color
+            original_started = self.record.started
             original_version = self.record.version
             try:
                 yield
@@ -49,6 +50,7 @@ class GameService:
                 self.record.mode = original_mode
                 self.record.difficulty = original_difficulty
                 self.record.human_color = original_human_color
+                self.record.started = original_started
                 self.record.version = original_version
                 raise
 
@@ -61,6 +63,7 @@ class GameService:
             "mode": self.record.mode,
             "difficulty": self.record.difficulty,
             "human_color": self.record.human_color,
+            "started": self.record.started,
             "cpu_color": (self.cpu_color if self.record.mode == "pvc" else None),
             "valid_moves": [[y, x] for y, x in game.valid_moves()],
         }
@@ -94,10 +97,13 @@ class GameService:
             human_color = BLACK
 
         with self._update():
+            if self.record.started:
+                raise GameError("Reset before starting a new game", 409)
             self.record.game.reset()
             self.record.mode = mode
             self.record.difficulty = difficulty
             self.record.human_color = human_color
+            self.record.started = True
 
             if mode == "pvc" and human_color == WHITE:
                 self._play_cpu_until_human_turn()
@@ -106,13 +112,14 @@ class GameService:
     def change_mode(self, mode: str) -> dict:
         if mode not in ("pvp", "pvc"):
             raise GameError("Invalid game mode", 400)
+
         with self._update():
             if mode == self.record.mode:
                 return self._snapshot_unlocked()
-            game = self.record.game
-            stone_count = sum(cell != EMPTY for row in game.board for cell in row)
-            if stone_count > 4 or game.turn == EMPTY:
-                raise GameError("Reset before changing mode", 409)
+
+            if self.record.started:
+                raise GameError("Reset before changing settings", 409)
+
             self.record.mode = mode
             self.record.human_color = BLACK
             return self._snapshot_unlocked()
@@ -128,15 +135,8 @@ class GameService:
                     409,
                 )
 
-            game = self.record.game
-
-            stone_count = sum(cell != EMPTY for row in game.board for cell in row)
-
-            if stone_count > 4 or game.turn == EMPTY:
-                raise GameError(
-                    "Reset before changing difficulty",
-                    409,
-                )
+            if self.record.started:
+                raise GameError("Reset before changing settings", 409)
 
             self.record.difficulty = difficulty
             return self._snapshot_unlocked()
@@ -190,6 +190,7 @@ class GameService:
         with self._update():
             game = self.record.game
             self._play_human_turn(game, y, x)
+            self.record.started = True
             if self.record.mode == "pvc":
                 self._play_cpu_until_human_turn()
             return self._snapshot_unlocked()
@@ -197,6 +198,7 @@ class GameService:
     def play_human(self, y: int, x: int) -> dict:
         with self._update():
             self._play_human_turn(self.record.game, y, x)
+            self.record.started = True
             return self._snapshot_unlocked()
 
     def play_cpu(
@@ -219,4 +221,5 @@ class GameService:
         with self._update():
             self.record.game.reset()
             self.record.human_color = BLACK
+            self.record.started = False
             return self._snapshot_unlocked()

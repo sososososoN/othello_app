@@ -59,6 +59,7 @@ class GameStateResponse(BaseModel):
     difficulty: Difficulty
     human_color: PlayerColor = 1
     cpu_color: PlayerColor | None = None
+    started: bool
     valid_moves: list[ValidMove]
 
 

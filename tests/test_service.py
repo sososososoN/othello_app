@@ -276,3 +276,39 @@ def test_failed_persistence_restores_version() -> None:
     # 盤面とversionの両方が元に戻る
     assert service.state() == before
     assert record.version == 3
+
+
+def test_started_state_transitions() -> None:
+    # 新しい対局は未開始
+    service = GameService(GameRecord())
+    assert service.state()["started"] is False
+
+    # 対局開始でTrue
+    service.start_game(mode="pvp")
+    assert service.state()["started"] is True
+
+    # リセットでFalse
+    service.reset()
+    assert service.state()["started"] is False
+
+
+def test_move_without_start_marks_game_started() -> None:
+    # 開始APIを呼ばずに着手するケース
+    service = GameService(GameRecord())
+
+    service.play_human(2, 3)
+
+    assert service.state()["started"] is True
+
+
+def test_cannot_start_twice_without_reset() -> None:
+    service = GameService(GameRecord())
+    service.start_game(mode="pvp")
+
+    with pytest.raises(GameError) as exc_info:
+        service.start_game(mode="pvp")
+
+    assert exc_info.value.status_code == 409
+
+    # 失敗後も開始済み状態を維持
+    assert service.state()["started"] is True

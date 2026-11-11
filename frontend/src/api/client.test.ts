@@ -29,6 +29,7 @@ const initialState: GameState = {
   difficulty: "normal",
   human_color: 1,
   cpu_color: null,
+  started: false,
   valid_moves: [
     [2, 3],
     [3, 2],

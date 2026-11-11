@@ -41,6 +41,7 @@ const initialState: GameState = {
   difficulty: "normal",
   human_color: 1,
   cpu_color: null,
+  started: false,
   valid_moves: [
     [2, 3],
     [3, 2],
@@ -74,11 +75,13 @@ const mockAnalysis: AnalysisResult = {
 };
 
 beforeEach(() => {
-  sessionStorage.clear();
   vi.resetAllMocks();
 
   vi.mocked(getGameState).mockResolvedValue(initialState);
-  vi.mocked(startGame).mockResolvedValue(initialState);
+  vi.mocked(startGame).mockResolvedValue({
+    ...initialState,
+    started: true,
+  });
   vi.mocked(resetGame).mockResolvedValue(initialState);
   vi.mocked(playHumanMove).mockResolvedValue(initialState);
   vi.mocked(playCpuMove).mockResolvedValue(initialState);
@@ -424,5 +427,16 @@ describe("App", () => {
         }),
       ).toBeEnabled();
     });
+  });
+  it("開始済みの対局では設定変更を禁止する", async () => {
+    const startedState: GameState = {
+      ...initialState,
+      started: true,
+    };
+    vi.mocked(getGameState).mockResolvedValue(startedState);
+    render(<App />);
+    await screen.findAllByRole("gridcell");
+    expect(screen.getByLabelText("対戦モード")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "対局を開始する" })).toBeDisabled();
   });
 });

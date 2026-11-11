@@ -40,6 +40,7 @@ export type GameState = {
   difficulty: Difficulty;
   human_color: PlayerColor;
   cpu_color: PlayerColor | null;
+  started: boolean;
   valid_moves: Position[];
 };
 
