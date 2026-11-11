@@ -1,37 +1,26 @@
-import { BrainCircuit, BookOpen, Gamepad2 } from "lucide-react";
-
 export function AppHeader() {
   return (
     // サイト全体に共通するヘッダー
-    <header className="border-b border-border bg-card/80">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        {/* ロゴとブランド名 */}
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/15 p-2 text-primary">
-            <BrainCircuit className="size-6" aria-hidden="true" />
-          </div>
-
-          <div>
-            <p className="font-semibold tracking-tight">Othello AI Lab</p>
-            <p className="text-xs text-muted-foreground">AI GAME & LEARNING</p>
-          </div>
-        </div>
-
-        {/* 将来のページ切り替えに備えたナビゲーション */}
-        <nav aria-label="メインナビゲーション" className="flex items-center gap-2">
-          <a
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent"
-          >
-            <Gamepad2 className="size-4" aria-hidden="true" />
-            プレイ
+    <header className="border-b border-border bg-background">
+      <div className="pag-4 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+        <a href="/" className="flex items-center gap-3">
+          <span aria-hidden="true" className="relative block size-8 shrink-0">
+            <span className="absolute top-1 left-0 size-5 rounded-full bg-stone-black" />
+            <span className="absolute right-0 bottom-1 size-5 rounded-full border border-board-border bg-stone-white" />
+          </span>
+          <span className="text-lg font-semibold tracking-[0.08em]">OTHELLO</span>
+        </a>
+        <nav
+          aria-label="メインナビゲーション"
+          className="flex items-center gap-6 text-sm"
+        >
+          <a href="/" aria-current="page" className="font-medium text-foreground">
+            対局
           </a>
-
           <a
             href="/learn"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            <BookOpen className="size-4" aria-hidden="true" />
             学ぶ
           </a>
         </nav>
