@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from threading import BoundedSemaphore
 
 import backend.service as game_service
 from backend.schemas import GameStateResponse
@@ -557,3 +558,38 @@ def test_cpu_rejects_invalid_analysis_token(client: TestClient) -> None:
         json={"analysis_token": "invalid-token"},
     )
     assert response.status_code == 400
+
+
+def test_analysis_rejects_when_busy(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    # PvCに切り替える
+    assert client.patch("/mode", json={"mode": "pvc"}).status_code == 200
+
+    # 人間が着手してCPUの手番にする
+    assert (
+        client.post(
+            "/moves/player",
+            json={"y": 2, "x": 3},
+        ).status_code
+        == 200
+    )
+
+    # テスト専用の解析枠を用意
+    slots = BoundedSemaphore(1)
+    monkeypatch.setattr(othello, "analysis_slots", slots)
+
+    # 別の解析が実行中の状態を再現
+    assert slots.acquire(blocking=False)
+
+    try:
+        response = client.get("/analysis?depth=1")
+
+        # 枠が埋まっているため429を返す
+        assert response.status_code == 429
+        assert response.json()["detail"] == ("Too many concurrent analysis requests")
+        assert response.headers["Retry-After"] == "1"
+    finally:
+        # テスト後に枠を解放する
+        slots.release()
