@@ -133,7 +133,7 @@ jobs:
 
       # ChromiumとLinux側の依存ライブラリをインストール
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # 実際のブラウザを使ってE2Eテストを実行
       - name: Run E2E tests
