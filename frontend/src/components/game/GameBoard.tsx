@@ -65,7 +65,7 @@ export function GameBoard({
           aria-readonly="true"
           aria-rowcount={8}
           aria-colcount={8}
-          className="grid aspect-square min-w-0 flex-1 grid-cols-8 gap-0.5 rounded-xl border-4 border-board-border bg-board-border p-1"
+          className="grid aspect-square min-w-0 flex-1 grid-cols-8 gap-px rounded-sm border-[7px] border-board-border bg-board-border"
         >
           {board.map((row, y) =>
             row.map((cell, x) => {
@@ -87,10 +87,12 @@ export function GameBoard({
                     <span
                       role="img"
                       aria-label={label}
-                      className={`block size-[76%] rounded-full shadow-md ${
+                      className={`block size-[78%] rounded-full ${
                         cell === 1
-                          ? "bg-stone-black"
-                          : "border border-black/15 bg-stone-white"
+                          ? // 黒石：表面のわずかな光と落ち影を表現
+                            "bg-stone-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_2px_3px_rgba(0,0,0,0.25)]"
+                          : // 白石：輪郭を保ちつつ陶器のような陰影を表現
+                            "border border-black/10 bg-stone-white shadow-[inset_0_-2px_3px_rgba(0,0,0,0.08),0_2px_3px_rgba(0,0,0,0.18)]"
                       }`}
                     />
                   ) : isValidMove ? (
@@ -99,11 +101,11 @@ export function GameBoard({
                       aria-label={`${label}に置く`}
                       disabled={disabled}
                       onClick={() => onSelectMove([y, x])}
-                      className="flex size-full cursor-pointer items-center justify-center transition-colors hover:bg-white/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="group flex size-full cursor-pointer items-center justify-center transition-colors hover:bg-white/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-stone-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span
                         aria-hidden="true"
-                        className="block size-[24%] rounded-full bg-foreground/45 transition-transform hover:scale-125"
+                        className="block size-[18%] rounded-full bg-stone-white/55 transition-transform group-hover:scale-125"
                       />
                     </button>
                   ) : (
