@@ -33,48 +33,39 @@ export function AnalysisPanel({ analysis }: AnalysisPanelProps) {
         <CardTitle>CPUの思考解析</CardTitle>
         <CardDescription>直前のCPUの手に使用した解析結果</CardDescription>
       </CardHeader>
-
-      {/* 変更：全体を縦方向に区切る */}
       <CardContent className="space-y-6">
-        {/* 変更：概要専用のGrid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-y border-border py-5">
+          <div>
             <p className="text-xs text-muted-foreground">最善手</p>
             <p className="mt-1 text-2xl font-semibold tracking-tight">
               {analysis.best_move ? formatPosition(analysis.best_move) : "なし"}
             </p>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <div>
             <p className="text-xs text-muted-foreground">評価値</p>
             <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
               {analysis.score === null ? "—" : formatScore(analysis.score)}
             </p>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <div>
             <p className="text-xs text-muted-foreground">探索ノード数</p>
             <p className="mt-1 text-xl font-semibold tabular-nums">
               {analysis.nodes_visited.toLocaleString()}
             </p>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <div>
             <p className="text-xs text-muted-foreground">解析時間</p>
             <p className="mt-1 text-xl font-semibold tabular-nums">
               {analysis.elapsed_ms.toFixed(1)} ms
             </p>
           </div>
         </div>
-
-        {/* 変更：Gridの外に補足情報を配置 */}
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border border-border px-3 py-1">
-            探索深さ：{analysis.depth}
-          </span>
-          <span className="rounded-full border border-border px-3 py-1">
-            枝刈り回数：{analysis.cutoffs}
-          </span>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <span>探索深さ：{analysis.depth}</span>
+          <span>枝刈り回数：{analysis.cutoffs}</span>
         </div>
 
         {/* 変更：候補手の表に横幅を確保 */}
@@ -137,8 +128,8 @@ export function AnalysisPanel({ analysis }: AnalysisPanelProps) {
                             </span>
 
                             {isBest && (
-                              <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                                BEST
+                              <span className="text-xs font-medium text-primary">
+                                最善
                               </span>
                             )}
                           </div>
