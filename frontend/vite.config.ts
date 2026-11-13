@@ -24,7 +24,6 @@ export default defineConfig({
       "/analysis": apiTarget,
       "/mode": apiTarget,
       "/difficulty": apiTarget,
-      "/learn": apiTarget,
       "/static": apiTarget,
     },
   },
