@@ -66,12 +66,14 @@ describe("AnalysisPanel", () => {
     expect(screen.getByText("候補手はありません。")).toBeInTheDocument();
   });
 
-  it("最善手にBESTラベルを付ける", () => {
+  it("最善手に最善ラベルを付ける", () => {
     render(<AnalysisPanel analysis={analysis} />);
+
     const table = screen.getByRole("table");
     const rows = within(table).getAllByRole("row");
+
     expect(within(rows[1]).getByText("C3")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("BEST")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("最善")).toBeInTheDocument();
     expect(within(rows[2]).getByText("E3")).toBeInTheDocument();
   });
 });
